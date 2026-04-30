@@ -9,8 +9,12 @@ import {
   Polyline,
   GeoJSON,
   useMap,
+  Marker,
 } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import MarkerClusterGroup from 'react-leaflet-cluster';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { routes, BASE_URL } from '@/data/routeData';
 import proj4 from 'proj4';
 
@@ -90,19 +94,8 @@ export default function MapView() {
     fetch('/api/taipei-trees')
       .then((res) => res.json())
       .then((data) => {
-        const results = Array.isArray(data) ? data : data?.result?.results || [];
-        const validTrees = [];
-        results.forEach((t) => {
-          const x = parseFloat(t.X || t.TWD97_X || t.x);
-          const y = parseFloat(t.Y || t.TWD97_Y || t.y);
-          if (!isNaN(x) && !isNaN(y)) {
-            const [lng, lat] = proj4('EPSG:3826', 'EPSG:4326', [x, y]);
-            if (lat >= 25.01 && lat <= 25.05 && lng >= 121.54 && lng <= 121.59) {
-              validTrees.push({ lat, lng, ...t });
-            }
-          }
-        });
-        setTrees(validTrees);
+        // API returns pre-processed data with lat/lng
+        setTrees(Array.isArray(data) ? data : []);
       })
       .catch((err) => console.error('Failed to load trees:', err));
   }, [showTrees]);
@@ -189,15 +182,34 @@ export default function MapView() {
           />
         )}
 
-        {showTrees &&
-          trees.map((t, i) => (
-            <CircleMarker
-              key={`tree-${i}`}
-              center={[t.lat, t.lng]}
-              radius={3}
-              pathOptions={{ color: '#16a34a', fillColor: '#16a34a', fillOpacity: 0.6, weight: 1 }}
-            />
-          ))}
+        {showTrees && trees.length > 0 && (
+          <MarkerClusterGroup
+            chunkedLoading
+            maxClusterRadius={50}
+          >
+            {trees.map((t, i) => (
+              <CircleMarker
+                key={`tree-${t.id || i}`}
+                center={[t.lat, t.lng]}
+                radius={4}
+                pathOptions={{ 
+                  color: '#16a34a', 
+                  fillColor: '#16a34a', 
+                  fillOpacity: 0.6, 
+                  weight: 1 
+                }}
+              >
+                <Popup>
+                  <div className="text-sm font-sans">
+                    <h3 className="font-bold text-green-800 mb-1">{t.type || '未知樹種'}</h3>
+                    <p className="text-gray-600 mb-1">{t.addr || '未知路段'}</p>
+                    <p className="text-xs text-gray-400">編號: {t.id || '-'}</p>
+                  </div>
+                </Popup>
+              </CircleMarker>
+            ))}
+          </MarkerClusterGroup>
+        )}
       </MapContainer>
 
       {/* ── Layer control panel (top-right) ─────────────── */}
