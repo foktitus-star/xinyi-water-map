@@ -123,36 +123,6 @@ export default function MapView() {
           ) : null
         )}
 
-        {showSidewalks && sidewalks && (
-          <GeoJSON
-            data={sidewalks}
-            style={{ color: '#60a5fa', weight: 3, opacity: 0.5 }}
-          />
-        )}
-
-
-
-        {showTrees &&
-          trees.map((t, i) => (
-            <CircleMarker
-              key={t.TreeID || `tree-${i}`}
-              center={[t.lat, t.lng]}
-              radius={3}
-              pathOptions={{ stroke: false, fillColor: '#30F243', fillOpacity: 0.25 }}
-            >
-              <Popup className="custom-popup">
-                <div className="p-1 min-w-[120px]">
-                  <h3 className="text-sm font-bold text-slate-800 border-b border-slate-200 pb-1 mb-2">
-                    🌳 {t.TreeType || '未知樹種'}
-                  </h3>
-                  <div className="text-xs text-slate-600 space-y-1">
-                    <p>樹高：<span className="font-medium text-slate-700">{t.TreeHeight ? `${t.TreeHeight} m` : '無資料'}</span></p>
-                    <p>胸徑：<span className="font-medium text-slate-700">{t.Diameter ? `${t.Diameter} cm` : '無資料'}</span></p>
-                  </div>
-                </div>
-              </Popup>
-            </CircleMarker>
-          ))}
       </MapContainer>
 
       {/* ── Layer control panel (top-right) ─────────────── */}
