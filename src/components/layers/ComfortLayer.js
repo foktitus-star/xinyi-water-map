@@ -18,9 +18,9 @@ export default function ComfortLayer({ showTrees, showSidewalks }) {
     fetch('/TaipeiTree_filtered.json')
       .then((res) => res.json())
       .then((data) => {
-        // 為了避免瀏覽器渲染上萬棵樹導致記憶體耗盡 (OOM Crash)，我們進行抽樣 (只取 1/5)
-        const sampledTrees = data.filter((t, idx) => t && t.lat && t.lng && idx % 5 === 0);
-        setTrees(sampledTrees);
+        // 過濾掉沒有座標的異常資料，避免 Leaflet 崩潰
+        const validTrees = data.filter((t) => t && t.lat && t.lng);
+        setTrees(validTrees);
       })
       .catch((err) => console.error('Failed to load trees:', err));
   }, [showTrees, trees]);
