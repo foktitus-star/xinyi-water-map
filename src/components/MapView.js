@@ -9,12 +9,8 @@ import {
   Polyline,
   GeoJSON,
   useMap,
-  Marker,
 } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import MarkerClusterGroup from 'react-leaflet-cluster';
-import 'leaflet.markercluster/dist/MarkerCluster.css';
-import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { routes, BASE_URL } from '@/data/routeData';
 import proj4 from 'proj4';
 
@@ -85,19 +81,16 @@ export default function MapView() {
   // Open Data layers state
   const [showTrees, setShowTrees] = useState(false);
   const [showSidewalks, setShowSidewalks] = useState(false);
-  const [showZoning, setShowZoning] = useState(false);
   const [trees, setTrees] = useState([]);
   const [sidewalks, setSidewalks] = useState(null);
-  const [zoning, setZoning] = useState(null);
 
   // Fetch Trees (Layer A)
   useEffect(() => {
     if (!showTrees || trees.length > 0) return;
-    fetch('/api/taipei-trees')
+    fetch('/TaipeiTree_filtered.json')
       .then((res) => res.json())
       .then((data) => {
-        // API returns pre-processed data with lat/lng
-        setTrees(Array.isArray(data) ? data : []);
+        setTrees(data);
       })
       .catch((err) => console.error('Failed to load trees:', err));
   }, [showTrees]);
@@ -135,15 +128,6 @@ export default function MapView() {
       .catch((err) => console.error('Failed to load sidewalks:', err));
   }, [showSidewalks]);
 
-  // Fetch Zoning (Layer C)
-  useEffect(() => {
-    if (!showZoning || zoning) return;
-    fetch('/data/xinyi_zoning.json')
-      .then((res) => res.json())
-      .then((data) => setZoning(data))
-      .catch((err) => console.error('Failed to load zoning:', err));
-  }, [showZoning]);
-
   const polylines = useMemo(
     () => routes.map((r) => buildPolyline(r)),
     []
@@ -168,6 +152,7 @@ export default function MapView() {
         zoom={15}
         className="w-full h-full z-0"
         zoomControl={false}
+        preferCanvas={true}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
@@ -175,77 +160,6 @@ export default function MapView() {
           className="map-tiles-tinted"
         />
         <FitBoundsOnLoad />
-
-        {showZoning && zoning && (
-          <GeoJSON
-            data={zoning}
-            style={(feature) => {
-              const name = feature.properties.name || '';
-              let color = '#bfdbfe'; // Light Blue (Other)
-              if (name.includes('住')) color = '#fef08a'; // Yellow (Residential)
-              else if (name.includes('商')) color = '#fb923c'; // Orange (Commercial)
-              else if (name.includes('工')) color = '#e9d5ff'; // Purple (Industrial)
-              else if (name.includes('公園') || name.includes('綠地') || name.includes('保護區')) color = '#4ade80'; // Green (Park)
-              else if (name.includes('道') || name.includes('街')) color = '#94a3b8'; // Gray (Road)
-              
-              return {
-                fillColor: color,
-                fillOpacity: 0.45,
-                color: color,
-                weight: 1,
-                opacity: 0.6
-              };
-            }}
-            onEachFeature={(feature, layer) => {
-              const p = feature.properties;
-              
-              // 構建補充說明
-              let info = '';
-              if (p.name.includes('住')) info = '此區主要供住宅使用，旨在保障居住環境的寧靜與安全，對建築高度、建蔽率及容積率有明確限制。';
-              else if (p.name.includes('商')) info = '供商業設施及辦公室使用，是都市的經濟活動中心，通常擁有較高的容積率與建蔽率。';
-              else if (p.name.includes('工')) info = '供工業生產及相關設施使用。';
-              else if (p.name.includes('公園') || p.name.includes('綠地')) info = '都市中的開放空間，提供市民休閒遊憩，並兼具生態保護功能，嚴禁非公共設施之建築。';
-              else if (p.name.includes('道') || p.name.includes('街')) info = '都市交通動脈，維持交通運作與行人通行。';
-              else if (p.name.includes('學')) info = '供學校設施、教育環境使用。';
-
-              layer.bindTooltip(`<b>${p.name}</b>`, { sticky: true });
-              layer.bindPopup(`
-                <div class="popup-content min-w-[280px]">
-                  <div class="popup-badge mb-2" style="background: #fb923c; color: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; display: inline-block;">
-                    ${p.code || '使用分區'}
-                  </div>
-                  <h3 class="text-lg font-bold text-blue-900 mb-2">${p.name}</h3>
-                  <div class="space-y-3 text-sm text-slate-700 leading-relaxed">
-                    <p class="bg-blue-50 p-2 rounded-lg border-l-4 border-blue-200">
-                      ${info || '都市計畫中設定的特定土地用途區域。'}
-                    </p>
-                    <div class="grid grid-cols-2 gap-2 text-xs">
-                      <div class="bg-slate-50 p-2 rounded">
-                        <span class="text-slate-400 block mb-1">分區代碼</span>
-                        <span class="font-mono font-bold">${p.code || 'N/A'}</span>
-                      </div>
-                      <div class="bg-slate-50 p-2 rounded">
-                        <span class="text-slate-400 block mb-1">簡稱</span>
-                        <span class="font-bold">${p.short || p.name}</span>
-                      </div>
-                    </div>
-                    ${p.full ? `
-                      <div>
-                        <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">詳細描述</span>
-                        <p class="mt-1">${p.full}</p>
-                      </div>
-                    ` : ''}
-                    ${p.original ? `
-                      <div class="text-[10px] text-slate-400 italic">
-                        原屬分區: ${p.original}
-                      </div>
-                    ` : ''}
-                  </div>
-                </div>
-              `);
-            }}
-          />
-        )}
 
         {routes.map((route, ri) =>
           visibility[ri] ? (
@@ -257,34 +171,34 @@ export default function MapView() {
           ) : null
         )}
 
-        {showTrees && trees.length > 0 && (
-          <MarkerClusterGroup
-            chunkedLoading
-            maxClusterRadius={50}
-          >
-            {trees.map((t, i) => (
-              <CircleMarker
-                key={`tree-${t.id || i}`}
-                center={[t.lat, t.lng]}
-                radius={4}
-                pathOptions={{ 
-                  color: '#16a34a', 
-                  fillColor: '#16a34a', 
-                  fillOpacity: 0.6, 
-                  weight: 1 
-                }}
-              >
-                <Popup>
-                  <div className="text-sm font-sans">
-                    <h3 className="font-bold text-green-800 mb-1">{t.type || '未知樹種'}</h3>
-                    <p className="text-gray-600 mb-1">{t.addr || '未知路段'}</p>
-                    <p className="text-xs text-gray-400">編號: {t.id || '-'}</p>
-                  </div>
-                </Popup>
-              </CircleMarker>
-            ))}
-          </MarkerClusterGroup>
+        {showSidewalks && sidewalks && (
+          <GeoJSON
+            data={sidewalks}
+            style={{ color: '#60a5fa', weight: 3, opacity: 0.5 }}
+          />
         )}
+
+        {showTrees &&
+          trees.map((t, i) => (
+            <CircleMarker
+              key={t.TreeID || `tree-${i}`}
+              center={[t.lat, t.lng]}
+              radius={3}
+              pathOptions={{ stroke: false, fillColor: '#30F243', fillOpacity: 0.25 }}
+            >
+              <Popup className="custom-popup">
+                <div className="p-1 min-w-[120px]">
+                  <h3 className="text-sm font-bold text-slate-800 border-b border-slate-200 pb-1 mb-2">
+                    🌳 {t.TreeType || '未知樹種'}
+                  </h3>
+                  <div className="text-xs text-slate-600 space-y-1">
+                    <p>樹高：<span className="font-medium text-slate-700">{t.TreeHeight ? `${t.TreeHeight} m` : '無資料'}</span></p>
+                    <p>胸徑：<span className="font-medium text-slate-700">{t.Diameter ? `${t.Diameter} cm` : '無資料'}</span></p>
+                  </div>
+                </div>
+              </Popup>
+            </CircleMarker>
+          ))}
       </MapContainer>
 
       {/* ── Layer control panel (top-right) ─────────────── */}
@@ -372,19 +286,6 @@ export default function MapView() {
                   className="w-5 h-5 rounded accent-[#60a5fa] cursor-pointer"
                 />
                 <span className="text-sm leading-tight text-slate-700">🚶 人行道範圍</span>
-              </label>
-
-              <label
-                className="flex items-center gap-3 cursor-pointer
-                           hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors"
-              >
-                <input
-                  type="checkbox"
-                  checked={showZoning}
-                  onChange={() => setShowZoning(!showZoning)}
-                  className="w-5 h-5 rounded accent-[#fb923c] cursor-pointer"
-                />
-                <span className="text-sm leading-tight text-slate-700">🏘️ 都市計畫分區</span>
               </label>
             </div>
 
