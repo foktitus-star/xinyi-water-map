@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { GeoJSON, CircleMarker, Popup } from 'react-leaflet';
+import { GeoJSON, CircleMarker, Popup, LayerGroup } from 'react-leaflet';
 import proj4 from 'proj4';
 
 // ── proj4 setup (TWD97 to WGS84) ───────────────────────────
@@ -70,7 +70,7 @@ export default function ComfortLayer({ showTrees, showSidewalks }) {
   }, [showSidewalks, sidewalks]);
 
   return (
-    <>
+    <LayerGroup>
       {showSidewalks && sidewalks && (
         <GeoJSON
           data={sidewalks}
@@ -99,6 +99,6 @@ export default function ComfortLayer({ showTrees, showSidewalks }) {
             </Popup>
           </CircleMarker>
         ))}
-    </>
+    </LayerGroup>
   );
 }

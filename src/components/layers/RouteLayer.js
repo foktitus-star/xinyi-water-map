@@ -1,9 +1,9 @@
-import { Polyline, CircleMarker, Popup } from 'react-leaflet';
+import { Polyline, CircleMarker, Popup, LayerGroup } from 'react-leaflet';
 import { BASE_URL } from '@/data/routeData';
 
 export default function RouteLayer({ route, polylines }) {
   return (
-    <>
+    <LayerGroup>
       {/* Polylines */}
       {Array.isArray(polylines[0])
         ? Array.isArray(polylines[0][0])
@@ -84,6 +84,6 @@ export default function RouteLayer({ route, polylines }) {
           </Popup>
         </CircleMarker>
       ))}
-    </>
+    </LayerGroup>
   );
 }
