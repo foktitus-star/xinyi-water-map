@@ -4,21 +4,14 @@ import { useEffect, useState, useMemo } from 'react';
 import {
   MapContainer,
   TileLayer,
-  CircleMarker,
-  Popup,
-  Polyline,
-  GeoJSON,
   useMap,
 } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { routes, BASE_URL } from '@/data/routeData';
-import proj4 from 'proj4';
+import { routes } from '@/data/routeData';
+import ZoningLayer from './layers/ZoningLayer';
+import ComfortLayer from './layers/ComfortLayer';
+import RouteLayer from './layers/RouteLayer';
 
-// ── proj4 setup (TWD97 to WGS84) ───────────────────────────
-proj4.defs(
-  'EPSG:3826',
-  '+proj=tmerc +lat_0=0 +lon_0=121 +k=0.9999 +x_0=250000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs'
-);
 
 // ── helpers ────────────────────────────────────────────────
 /** Build a full polyline path from station coords + segment waypoints */
@@ -78,67 +71,10 @@ export default function MapView() {
   );
   const [expandPanel, setExpandPanel] = useState(false);
 
-  // Open Data layers state
+  // Open Data layers state (Toggles only)
   const [showTrees, setShowTrees] = useState(false);
   const [showSidewalks, setShowSidewalks] = useState(false);
   const [showZoning, setShowZoning] = useState(false);
-  
-  const [trees, setTrees] = useState([]);
-  const [sidewalks, setSidewalks] = useState(null);
-  const [zoning, setZoning] = useState(null);
-
-  // Fetch Zoning (Layer C)
-  useEffect(() => {
-    if (!showZoning || zoning) return;
-    fetch('/data/xinyi_zoning.json')
-      .then((res) => res.json())
-      .then((data) => setZoning(data))
-      .catch((err) => console.error('Failed to load zoning:', err));
-  }, [showZoning]);
-
-  // Fetch Trees (Layer A)
-  useEffect(() => {
-    if (!showTrees || trees.length > 0) return;
-    fetch('/TaipeiTree_filtered.json')
-      .then((res) => res.json())
-      .then((data) => {
-        setTrees(data);
-      })
-      .catch((err) => console.error('Failed to load trees:', err));
-  }, [showTrees]);
-
-  // Fetch Sidewalks (Layer B)
-  useEffect(() => {
-    if (!showSidewalks || sidewalks) return;
-    fetch('/api/taipei-sidewalks')
-      .then((res) => res.json())
-      .then((data) => {
-        const filteredFeatures = (data.features || []).filter((f) => {
-          if (!f.geometry || !f.geometry.coordinates) return false;
-
-          const getFirstPt = (arr) => (typeof arr[0] === 'number' ? arr : getFirstPt(arr[0]));
-          let firstPt = getFirstPt(f.geometry.coordinates);
-
-          if (firstPt[0] > 10000) {
-            // TWD97 to WGS84
-            const projectPoints = (pts) => {
-              if (typeof pts[0] === 'number') {
-                return proj4('EPSG:3826', 'EPSG:4326', [pts[0], pts[1]]);
-              }
-              return pts.map(projectPoints);
-            };
-            f.geometry.coordinates = projectPoints(f.geometry.coordinates);
-            firstPt = getFirstPt(f.geometry.coordinates);
-          }
-          const lng = firstPt[0];
-          const lat = firstPt[1];
-          // Relaxed bounds slightly to ensure we capture relevant sidewalks
-          return lat >= 25.01 && lat <= 25.06 && lng >= 121.54 && lng <= 121.60;
-        });
-        setSidewalks({ ...data, features: filteredFeatures });
-      })
-      .catch((err) => console.error('Failed to load sidewalks:', err));
-  }, [showSidewalks]);
 
   const polylines = useMemo(
     () => routes.map((r) => buildPolyline(r)),
@@ -173,76 +109,9 @@ export default function MapView() {
         />
         <FitBoundsOnLoad />
 
-        {showZoning && zoning && (
-          <GeoJSON
-            data={zoning}
-            style={(feature) => {
-              const name = feature.properties.name || '';
-              let color = '#bfdbfe'; // Light Blue (Other)
-              if (name.includes('住')) color = '#fef08a'; // Yellow (Residential)
-              else if (name.includes('商')) color = '#fb923c'; // Orange (Commercial)
-              else if (name.includes('工')) color = '#e9d5ff'; // Purple (Industrial)
-              else if (name.includes('公園') || name.includes('綠地') || name.includes('保護區')) color = '#4ade80'; // Green (Park)
-              else if (name.includes('道') || name.includes('街')) color = '#94a3b8'; // Gray (Road)
-              
-              return {
-                fillColor: color,
-                fillOpacity: 0.45,
-                color: color,
-                weight: 1,
-                opacity: 0.6
-              };
-            }}
-            onEachFeature={(feature, layer) => {
-              const p = feature.properties;
-              
-              // 構建補充說明
-              let info = '';
-              if (p.name.includes('住')) info = '此區主要供住宅使用，旨在保障居住環境的寧靜與安全，對建築高度、建蔽率及容積率有明確限制。';
-              else if (p.name.includes('商')) info = '供商業設施及辦公室使用，是都市的經濟活動中心，通常擁有較高的容積率與建蔽率。';
-              else if (p.name.includes('工')) info = '供工業生產及相關設施使用。';
-              else if (p.name.includes('公園') || p.name.includes('綠地')) info = '都市中的開放空間，提供市民休閒遊憩，並兼具生態保護功能，嚴禁非公共設施之建築。';
-              else if (p.name.includes('道') || p.name.includes('街')) info = '都市交通動脈，維持交通運作與行人通行。';
-              else if (p.name.includes('學')) info = '供學校設施、教育環境使用。';
-
-              layer.bindTooltip(`<b>${p.name}</b>`, { sticky: true });
-              layer.bindPopup(`
-                <div class="popup-content min-w-[280px]">
-                  <div class="popup-badge mb-2" style="background: #fb923c; color: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; display: inline-block;">
-                    ${p.code || '使用分區'}
-                  </div>
-                  <h3 class="text-lg font-bold text-blue-900 mb-2">${p.name}</h3>
-                  <div class="space-y-3 text-sm text-slate-700 leading-relaxed">
-                    <p class="bg-blue-50 p-2 rounded-lg border-l-4 border-blue-200">
-                      ${info || '都市計畫中設定的特定土地用途區域。'}
-                    </p>
-                    <div class="grid grid-cols-2 gap-2 text-xs">
-                      <div class="bg-slate-50 p-2 rounded">
-                        <span class="text-slate-400 block mb-1">分區代碼</span>
-                        <span class="font-mono font-bold">${p.code || 'N/A'}</span>
-                      </div>
-                      <div class="bg-slate-50 p-2 rounded">
-                        <span class="text-slate-400 block mb-1">簡稱</span>
-                        <span class="font-bold">${p.short || p.name}</span>
-                      </div>
-                    </div>
-                    ${p.full ? `
-                      <div>
-                        <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">詳細描述</span>
-                        <p class="mt-1">${p.full}</p>
-                      </div>
-                    ` : ''}
-                    ${p.original ? `
-                      <div class="text-[10px] text-slate-400 italic">
-                        原屬分區: ${p.original}
-                      </div>
-                    ` : ''}
-                  </div>
-                </div>
-              `);
-            }}
-          />
-        )}
+        {/* ── Modular Layers ── */}
+        <ZoningLayer showZoning={showZoning} />
+        <ComfortLayer showTrees={showTrees} showSidewalks={showSidewalks} />
 
         {routes.map((route, ri) =>
           visibility[ri] ? (
@@ -439,90 +308,4 @@ export default function MapView() {
   );
 }
 
-// ── Individual route layer ─────────────────────────────────
-function RouteLayer({ route, polylines }) {
-  return (
-    <>
-      {/* Polylines */}
-      {Array.isArray(polylines[0])
-        ? Array.isArray(polylines[0][0])
-          ? polylines.map((seg, si) => (
-            <Polyline
-              key={`${route.id}-seg-${si}`}
-              positions={seg}
-              pathOptions={{
-                color: route.color,
-                weight: 4,
-                opacity: 0.75,
-                dashArray: null,
-              }}
-            />
-          ))
-          : (
-            <Polyline
-              positions={polylines}
-              pathOptions={{
-                color: route.color,
-                weight: 4,
-                opacity: 0.75,
-              }}
-            />
-          )
-        : null}
 
-      {/* Station markers */}
-      {route.stations.map((station) => (
-        <CircleMarker
-          key={`${route.id}-${station.id}`}
-          center={[station.lat, station.lng]}
-          radius={8}
-          pathOptions={{
-            color: '#fff',
-            weight: 2,
-            fillColor: route.color,
-            fillOpacity: 1,
-          }}
-        >
-          <Popup
-            maxWidth={420}
-            minWidth={340}
-            className="custom-popup"
-          >
-            <div className="popup-content">
-              <div
-                className="popup-badge"
-                style={{ background: route.color }}
-              >
-                {station.badge || station.id}
-              </div>
-              <h3 className="popup-title">{station.name}</h3>
-              <p className="popup-hook">{station.hook}</p>
-              {station.body && (
-                <p className="popup-body">{station.body}</p>
-              )}
-              {station.imgs && station.imgs.length > 0 && (
-                <div className="popup-images">
-                  {station.imgs.map((img, i) => (
-                    <figure key={i} className="popup-figure">
-                      <img
-                        src={`${BASE_URL}${img.src}`}
-                        alt={img.cap || station.name}
-                        loading="lazy"
-                        className="popup-img"
-                      />
-                      {img.cap && (
-                        <figcaption className="popup-caption">
-                          {img.cap}
-                        </figcaption>
-                      )}
-                    </figure>
-                  ))}
-                </div>
-              )}
-            </div>
-          </Popup>
-        </CircleMarker>
-      ))}
-    </>
-  );
-}
