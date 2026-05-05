@@ -115,10 +115,10 @@ export default function MapView() {
       .then((data) => {
         const filteredFeatures = (data.features || []).filter((f) => {
           if (!f.geometry || !f.geometry.coordinates) return false;
-          
+
           const getFirstPt = (arr) => (typeof arr[0] === 'number' ? arr : getFirstPt(arr[0]));
           let firstPt = getFirstPt(f.geometry.coordinates);
-          
+
           if (firstPt[0] > 10000) {
             // TWD97 to WGS84
             const projectPoints = (pts) => {
@@ -259,6 +259,35 @@ export default function MapView() {
             data={sidewalks}
             style={{ color: '#60a5fa', weight: 3, opacity: 0.5 }}
           />
+        )}
+
+        {showTrees && trees.length > 0 && (
+          <MarkerClusterGroup
+            chunkedLoading
+            maxClusterRadius={50}
+          >
+            {trees.map((t, i) => (
+              <CircleMarker
+                key={`tree-${t.id || i}`}
+                center={[t.lat, t.lng]}
+                radius={4}
+                pathOptions={{
+                  color: '#16a34a',
+                  fillColor: '#16a34a',
+                  fillOpacity: 0.6,
+                  weight: 1
+                }}
+              >
+                <Popup>
+                  <div className="text-sm font-sans">
+                    <h3 className="font-bold text-green-800 mb-1">{t.type || '未知樹種'}</h3>
+                    <p className="text-gray-600 mb-1">{t.addr || '未知路段'}</p>
+                    <p className="text-xs text-gray-400">編號: {t.id || '-'}</p>
+                  </div>
+                </Popup>
+              </CircleMarker>
+            ))}
+          </MarkerClusterGroup>
         )}
 
         {showTrees &&
@@ -445,27 +474,27 @@ function RouteLayer({ route, polylines }) {
       {Array.isArray(polylines[0])
         ? Array.isArray(polylines[0][0])
           ? polylines.map((seg, si) => (
-              <Polyline
-                key={`${route.id}-seg-${si}`}
-                positions={seg}
-                pathOptions={{
-                  color: route.color,
-                  weight: 4,
-                  opacity: 0.75,
-                  dashArray: null,
-                }}
-              />
-            ))
+            <Polyline
+              key={`${route.id}-seg-${si}`}
+              positions={seg}
+              pathOptions={{
+                color: route.color,
+                weight: 4,
+                opacity: 0.75,
+                dashArray: null,
+              }}
+            />
+          ))
           : (
-              <Polyline
-                positions={polylines}
-                pathOptions={{
-                  color: route.color,
-                  weight: 4,
-                  opacity: 0.75,
-                }}
-              />
-            )
+            <Polyline
+              positions={polylines}
+              pathOptions={{
+                color: route.color,
+                weight: 4,
+                opacity: 0.75,
+              }}
+            />
+          )
         : null}
 
       {/* Station markers */}
