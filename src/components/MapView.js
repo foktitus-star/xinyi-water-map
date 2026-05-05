@@ -261,34 +261,7 @@ export default function MapView() {
           />
         )}
 
-        {showTrees && trees.length > 0 && (
-          <MarkerClusterGroup
-            chunkedLoading
-            maxClusterRadius={50}
-          >
-            {trees.map((t, i) => (
-              <CircleMarker
-                key={`tree-${t.id || i}`}
-                center={[t.lat, t.lng]}
-                radius={4}
-                pathOptions={{
-                  color: '#16a34a',
-                  fillColor: '#16a34a',
-                  fillOpacity: 0.6,
-                  weight: 1
-                }}
-              >
-                <Popup>
-                  <div className="text-sm font-sans">
-                    <h3 className="font-bold text-green-800 mb-1">{t.type || '未知樹種'}</h3>
-                    <p className="text-gray-600 mb-1">{t.addr || '未知路段'}</p>
-                    <p className="text-xs text-gray-400">編號: {t.id || '-'}</p>
-                  </div>
-                </Popup>
-              </CircleMarker>
-            ))}
-          </MarkerClusterGroup>
-        )}
+
 
         {showTrees &&
           trees.map((t, i) => (
