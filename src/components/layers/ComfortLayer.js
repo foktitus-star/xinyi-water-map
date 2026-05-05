@@ -2,6 +2,12 @@ import { useEffect, useState } from 'react';
 import { GeoJSON, CircleMarker, Popup } from 'react-leaflet';
 import proj4 from 'proj4';
 
+// ── proj4 setup (TWD97 to WGS84) ───────────────────────────
+proj4.defs(
+  'EPSG:3826',
+  '+proj=tmerc +lat_0=0 +lon_0=121 +k=0.9999 +x_0=250000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs'
+);
+
 export default function ComfortLayer({ showTrees, showSidewalks }) {
   const [trees, setTrees] = useState([]);
   const [sidewalks, setSidewalks] = useState(null);
@@ -60,7 +66,7 @@ export default function ComfortLayer({ showTrees, showSidewalks }) {
       )}
 
       {showTrees &&
-        trees.map((t, i) => (
+        trees.filter(t => t && t.lat && t.lng).map((t, i) => (
           <CircleMarker
             key={t.TreeID || `tree-${i}`}
             center={[t.lat, t.lng]}
