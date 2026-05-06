@@ -59,24 +59,18 @@ export default function ComfortFeedbackForm({ routeName, segmentId }) {
     };
 
     try {
-      // 優先讀取環境變數，若未設定則使用 fallback URL
-      const url = process.env.NEXT_PUBLIC_SHEETS_API_URL
-        || 'https://script.google.com/macros/s/AKfycbyWHtEu9A4hFKHVhfxrmifkNdRdG6NzHOkRhKqSG2QfMxpNVCCzqrlFownXotIfNgpZlg/exec';
-      if (!url) {
-        throw new Error('無法取得 API URL');
-      }
-
-      await fetch(url, {
+      // 透過 Next.js API Route 代理送出，避免 CORS / redirect 吃掉 POST body 的問題
+      const res = await fetch('/api/feedback', {
         method: 'POST',
-        // no-cors 模式下只允許「簡單請求」，必須用 text/plain
-        // 若用 application/json，瀏覽器會自動觸發 preflight (OPTIONS)，
-        // 而 Google Apps Script 不處理 OPTIONS，導致其他使用者送出失敗
-        headers: { 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-        mode: 'no-cors',
       });
 
-      // 由於 no-cors 無法讀取 JSON 回傳，我們預設成功
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `HTTP ${res.status}`);
+      }
+
       setIsSuccess(true);
       setTimeout(() => {
         map.closePopup();
