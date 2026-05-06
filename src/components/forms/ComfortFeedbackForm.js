@@ -59,9 +59,11 @@ export default function ComfortFeedbackForm({ routeName, segmentId }) {
     };
 
     try {
-      const url = process.env.NEXT_PUBLIC_SHEETS_API_URL;
+      // 優先讀取環境變數，若未設定則使用 fallback URL
+      const url = process.env.NEXT_PUBLIC_SHEETS_API_URL
+        || 'https://script.google.com/macros/s/AKfycbyWHtEu9A4hFKHVhfxrmifkNdRdG6NzHOkRhKqSG2QfMxpNVCCzqrlFownXotIfNgpZlg/exec';
       if (!url) {
-        throw new Error('環境變數 NEXT_PUBLIC_SHEETS_API_URL 未設定，請至 Vercel 後台新增此變數');
+        throw new Error('無法取得 API URL');
       }
 
       await fetch(url, {
