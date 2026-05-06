@@ -17,10 +17,17 @@ export const HISTORICAL_MAPS = [
     color: '#15803d',
   },
   {
-    id: 'us1945',
+    id: 'liugong1939',
+    label: '1939 瑠公水利區域圖',
+    emoji: '🗺️',
+    url: 'https://gis.sinica.edu.tw/taipei/file-exists.php?img=liugong_1939-jpg-{z}-{x}-{y}',
+    color: '#0284c7', // light blue
+  },
+  {
+    id: 'am1945',
     label: '1945 美軍地圖',
     emoji: '🗺️',
-    url: 'https://gis.sinica.edu.tw/tileserver/file-exists.php?img=USCity_1945_Taipei-jpg-{z}-{x}-{y}',
+    url: 'https://gis.sinica.edu.tw/tileserver/file-exists.php?img=AMCityPlan_1945-png-{z}-{x}-{y}',
     color: '#1d4ed8',
   },
   {
