@@ -61,14 +61,17 @@ export default function ComfortFeedbackForm({ routeName, segmentId }) {
     try {
       const url = process.env.NEXT_PUBLIC_SHEETS_API_URL;
       if (!url) {
-        throw new Error('API URL is missing');
+        throw new Error('環境變數 NEXT_PUBLIC_SHEETS_API_URL 未設定，請至 Vercel 後台新增此變數');
       }
 
       await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        // no-cors 模式下只允許「簡單請求」，必須用 text/plain
+        // 若用 application/json，瀏覽器會自動觸發 preflight (OPTIONS)，
+        // 而 Google Apps Script 不處理 OPTIONS，導致其他使用者送出失敗
+        headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify(payload),
-        mode: 'no-cors' // Google Apps Script Web App typically requires no-cors for simple requests from client, though it means we can't read the response. We assume success if no network error.
+        mode: 'no-cors',
       });
 
       // 由於 no-cors 無法讀取 JSON 回傳，我們預設成功
