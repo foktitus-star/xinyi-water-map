@@ -12,6 +12,7 @@ import ZoningLayer from './layers/ZoningLayer';
 import ComfortLayer from './layers/ComfortLayer';
 import RouteLayer from './layers/RouteLayer';
 import UserLocationLayer from './layers/UserLocationLayer';
+import HistoricalLayer, { HISTORICAL_MAPS } from './layers/HistoricalLayer';
 
 
 // ── helpers ────────────────────────────────────────────────
@@ -76,6 +77,12 @@ export default function MapView() {
   const [showTrees, setShowTrees] = useState(false);
   const [showSidewalks, setShowSidewalks] = useState(false);
   const [showZoning, setShowZoning] = useState(false);
+
+  // Historical basemap state (null = none active)
+  const [activeHistory, setActiveHistory] = useState(null);
+
+  const toggleHistory = (id) =>
+    setActiveHistory((prev) => (prev === id ? null : id));
   
   // Geolocation state
   const [userPos, setUserPos] = useState(null);
@@ -142,6 +149,9 @@ export default function MapView() {
         />
         <FitBoundsOnLoad />
         <MapFlyTo center={userPos} />
+
+        {/* ── Historical basemap (below all data layers) ── */}
+        <HistoricalLayer activeId={activeHistory} />
 
         {/* ── Modular Layers ── */}
         <ZoningLayer showZoning={showZoning} />
@@ -260,6 +270,33 @@ export default function MapView() {
                 />
                 <span className="text-sm leading-tight text-slate-700">🏘️ 都市計畫分區</span>
               </label>
+            </div>
+
+            {/* Historical maps selector */}
+            <div className="space-y-1 mb-4 pt-3 border-t border-slate-200">
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 mb-2">
+                🕰️ 古今地圖
+              </p>
+              {HISTORICAL_MAPS.map((hm) => (
+                <label
+                  key={hm.id}
+                  className="flex items-center gap-3 cursor-pointer
+                             hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors"
+                >
+                  <input
+                    type="checkbox"
+                    checked={activeHistory === hm.id}
+                    onChange={() => toggleHistory(hm.id)}
+                    className="w-5 h-5 rounded cursor-pointer"
+                    style={{ accentColor: hm.color }}
+                  />
+                  <span
+                    className="w-3 h-3 rounded-sm flex-shrink-0 border border-white/50"
+                    style={{ background: hm.color }}
+                  />
+                  <span className="text-sm leading-tight text-slate-700">{hm.label}</span>
+                </label>
+              ))}
             </div>
 
             {/* Quick buttons */}
