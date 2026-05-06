@@ -26,6 +26,9 @@ export default function RootLayout({ children }) {
           href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Serif+TC:wght@400;700&display=swap"
           rel="stylesheet"
         />
+        {/* Viewer.js for image lightbox */}
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.css" />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js" async></script>
       </head>
       <body className="antialiased">{children}</body>
     </html>
