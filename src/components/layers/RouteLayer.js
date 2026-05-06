@@ -22,13 +22,13 @@ export default function RouteLayer({ route, polylines }) {
                   interactive: false // 讓底下的粗線負責接收點擊
                 }}
               />
-              {/* Invisible Hit Area */}
+              {/* Invisible Hit Area — opacity 0.001 讓 Canvas 確實繪製，才能偵測點擊 */}
               <Polyline
                 positions={seg}
                 pathOptions={{
-                  color: 'transparent',
+                  color: '#000000',
                   weight: 20,
-                  opacity: 0,
+                  opacity: 0.001,
                   interactive: true
                 }}
               >
@@ -55,9 +55,9 @@ export default function RouteLayer({ route, polylines }) {
               <Polyline
                 positions={polylines}
                 pathOptions={{
-                  color: 'transparent',
+                  color: '#000000',
                   weight: 20,
-                  opacity: 0,
+                  opacity: 0.001,
                   interactive: true
                 }}
               >
