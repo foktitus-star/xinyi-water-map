@@ -12,7 +12,7 @@ import ZoningLayer from './layers/ZoningLayer';
 import ComfortLayer from './layers/ComfortLayer';
 import RouteLayer from './layers/RouteLayer';
 import UserLocationLayer from './layers/UserLocationLayer';
-import HistoricalLayer, { HISTORICAL_MAPS } from './layers/HistoricalLayer';
+import HistoricalLayer, { HistoricalControl } from './layers/HistoricalLayer';
 
 
 // ── helpers ────────────────────────────────────────────────
@@ -273,31 +273,10 @@ export default function MapView() {
             </div>
 
             {/* Historical maps selector */}
-            <div className="space-y-1 mb-4 pt-3 border-t border-slate-200">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 mb-2">
-                🕰️ 古今地圖
-              </p>
-              {HISTORICAL_MAPS.map((hm) => (
-                <label
-                  key={hm.id}
-                  className="flex items-center gap-3 cursor-pointer
-                             hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors"
-                >
-                  <input
-                    type="checkbox"
-                    checked={activeHistory === hm.id}
-                    onChange={() => toggleHistory(hm.id)}
-                    className="w-5 h-5 rounded cursor-pointer"
-                    style={{ accentColor: hm.color }}
-                  />
-                  <span
-                    className="w-3 h-3 rounded-sm flex-shrink-0 border border-white/50"
-                    style={{ background: hm.color }}
-                  />
-                  <span className="text-sm leading-tight text-slate-700">{hm.label}</span>
-                </label>
-              ))}
-            </div>
+            <HistoricalControl
+              activeHistory={activeHistory}
+              toggleHistory={toggleHistory}
+            />
 
             {/* Quick buttons */}
             <div className="flex gap-2">
