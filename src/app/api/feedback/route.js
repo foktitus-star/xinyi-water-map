@@ -29,8 +29,13 @@ export async function POST(request) {
       return NextResponse.json({ success: true });
     } else {
       const errorText = await response.text();
-      console.error('GAS Error:', errorText);
-      return NextResponse.json({ error: 'Failed to write to Google Sheets' }, { status: response.status });
+      console.error('GAS Response Status:', response.status);
+      console.error('GAS Error Text:', errorText);
+      return NextResponse.json({ 
+        error: 'Failed to write to Google Sheets',
+        status: response.status,
+        details: errorText
+      }, { status: response.status || 500 });
     }
   } catch (error) {
     console.error('API Route Error:', error);
