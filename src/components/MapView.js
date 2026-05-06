@@ -170,7 +170,7 @@ export default function MapView() {
           shadow-xl text-slate-800
           transition-all duration-300 ease-in-out
           ${expandPanel ? 'w-72 p-5' : 'w-12 h-12 p-0'}
-          max-h-[calc(100dvh-24px)] overflow-y-auto
+          max-h-[calc(100dvh-24px)] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]
         `}
       >
         {/* Toggle button */}
