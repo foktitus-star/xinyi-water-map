@@ -11,6 +11,7 @@ import { routes } from '@/data/routeData';
 import ZoningLayer from './layers/ZoningLayer';
 import ComfortLayer from './layers/ComfortLayer';
 import RouteLayer from './layers/RouteLayer';
+import UserLocationLayer from './layers/UserLocationLayer';
 
 
 // ── helpers ────────────────────────────────────────────────
@@ -75,6 +76,11 @@ export default function MapView() {
   const [showTrees, setShowTrees] = useState(false);
   const [showSidewalks, setShowSidewalks] = useState(false);
   const [showZoning, setShowZoning] = useState(false);
+  
+  // Geolocation state
+  const [userPos, setUserPos] = useState(null);
+  const [accuracy, setAccuracy] = useState(null);
+  const [locating, setLocating] = useState(false);
 
   const polylines = useMemo(
     () => routes.map((r) => buildPolyline(r)),
@@ -92,6 +98,33 @@ export default function MapView() {
   const allOn = () => setVisibility(routes.map(() => true));
   const allOff = () => setVisibility(routes.map(() => false));
 
+  // Geolocation handler
+  const handleLocate = () => {
+    if (!navigator.geolocation) {
+      alert('您的瀏覽器不支援定位功能');
+      return;
+    }
+
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        setUserPos([latitude, longitude]);
+        setAccuracy(accuracy);
+        setLocating(false);
+      },
+      (err) => {
+        setLocating(false);
+        if (err.code === 1) {
+          alert('請允許瀏覽器存取您的位置');
+        } else {
+          alert('無法取得您的位置，請稍後再試');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   return (
     <div className="relative w-full h-full">
       {/* ── Map ─────────────────────────────────────────── */}
@@ -108,6 +141,7 @@ export default function MapView() {
           className="map-tiles-tinted"
         />
         <FitBoundsOnLoad />
+        <MapFlyTo center={userPos} />
 
         {/* ── Modular Layers ── */}
         <ZoningLayer showZoning={showZoning} />
@@ -122,6 +156,8 @@ export default function MapView() {
             />
           ) : null
         )}
+
+        <UserLocationLayer position={userPos} accuracy={accuracy} />
 
       </MapContainer>
 
@@ -257,6 +293,25 @@ export default function MapView() {
         )}
       </div>
 
+      {/* ── Locate Button (Below panel toggle or bottom right) ── */}
+      <button
+        onClick={handleLocate}
+        disabled={locating}
+        className={`
+          absolute top-[72px] right-3 z-[1000]
+          w-12 h-12 rounded-2xl
+          bg-white/95 backdrop-blur-md
+          border border-blue-900/10 shadow-lg
+          flex items-center justify-center
+          text-2xl transition-all duration-200
+          hover:bg-blue-50 active:scale-95
+          ${locating ? 'animate-pulse text-blue-400' : 'text-blue-900'}
+        `}
+        title="取得目前位置"
+      >
+        {locating ? '⏳' : '📍'}
+      </button>
+
       {/* ── Title overlay (bottom-left) ─────────────────── */}
       <div
         className="
@@ -276,6 +331,17 @@ export default function MapView() {
       </div>
     </div>
   );
+}
+
+// ── Internal Helper: MapFlyTo ───────────────────────────────
+function MapFlyTo({ center }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center) {
+      map.flyTo(center, 16, { animate: true, duration: 1.5 });
+    }
+  }, [center, map]);
+  return null;
 }
 
 
