@@ -53,8 +53,8 @@ export default function ComfortLayer({ showTrees, showSidewalks }) {
             lat = wgs84Pt[1];
           }
 
-          // 2. 判斷是否在信義區周邊範圍（與計畫分區圖層對齊）
-          const inBounds = lat >= 25.005927 && lat <= 25.052146 && lng >= 121.532936 && lng <= 121.610527;
+          // 2. 判斷是否在行道樹資料的實際範圍內（三個圖層使用同一組界限）
+          const inBounds = lat >= 25.013150 && lat <= 25.051617 && lng >= 121.549092 && lng <= 121.592332;
 
           // 3. 只有「在範圍內」的 Polygon，我們才花費昂貴的 CPU 算力去轉換所有的座標點
           // 這樣可以將 24MB 的 proj4 計算量減少 99%，徹底解決 Vercel 上點擊就當機的問題
