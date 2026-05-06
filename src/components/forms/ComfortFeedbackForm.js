@@ -59,16 +59,16 @@ export default function ComfortFeedbackForm({ routeName, segmentId }) {
     };
 
     try {
-      // 透過 Next.js API Route 代理送出，避免 CORS / redirect 吃掉 POST body 的問題
-      const res = await fetch('/api/feedback', {
+      // 呼叫本地 API Proxy (src/app/api/feedback/route.js)
+      // 透過伺服器端轉發，可以避開瀏覽器的 CORS 限制與資料遺失問題
+      const response = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || `HTTP ${res.status}`);
+      if (!response.ok) {
+        throw new Error('伺服器回應錯誤');
       }
 
       setIsSuccess(true);
