@@ -18,8 +18,14 @@ export default function ComfortLayer({ showTrees, showSidewalks }) {
     fetch('/TaipeiTree_filtered.json')
       .then((res) => res.json())
       .then((data) => {
-        // 過濾掉沒有座標的異常資料，避免 Leaflet 崩潰
-        const validTrees = data.filter((t) => t && t.lat && t.lng);
+        // 過濾掉沒有座標、或不在計畫分區範圍內的資料
+        const validTrees = data.filter(
+          (t) =>
+            t &&
+            t.lat != null && t.lng != null &&
+            t.lat >= 25.005927 && t.lat <= 25.052146 &&
+            t.lng >= 121.532936 && t.lng <= 121.610527
+        );
         setTrees(validTrees);
       })
       .catch((err) => console.error('Failed to load trees:', err));
@@ -47,8 +53,8 @@ export default function ComfortLayer({ showTrees, showSidewalks }) {
             lat = wgs84Pt[1];
           }
 
-          // 2. 判斷是否在信義區周邊範圍
-          const inBounds = lat >= 25.01 && lat <= 25.06 && lng >= 121.54 && lng <= 121.60;
+          // 2. 判斷是否在信義區周邊範圍（與計畫分區圖層對齊）
+          const inBounds = lat >= 25.005927 && lat <= 25.052146 && lng >= 121.532936 && lng <= 121.610527;
 
           // 3. 只有「在範圍內」的 Polygon，我們才花費昂貴的 CPU 算力去轉換所有的座標點
           // 這樣可以將 24MB 的 proj4 計算量減少 99%，徹底解決 Vercel 上點擊就當機的問題
