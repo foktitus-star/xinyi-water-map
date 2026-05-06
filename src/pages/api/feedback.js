@@ -1,22 +1,21 @@
-import { NextResponse } from 'next/server';
-
 const SHEETS_URL =
   process.env.NEXT_PUBLIC_SHEETS_API_URL ||
   'https://script.google.com/macros/s/AKfycbyWHtEu9A4hFKHVhfxrmifkNdRdG6NzHOkRhKqSG2QfMxpNVCCzqrlFownXotIfNgpZlg/exec';
 
-// GET: 用來確認 API route 有正確部署
-export async function GET() {
-  return NextResponse.json({ status: 'ok', message: 'feedback API is running' });
-}
+export default async function handler(req, res) {
+  if (req.method === 'GET') {
+    return res.status(200).json({ status: 'ok', message: 'Pages API is running' });
+  }
 
-export async function POST(request) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
   try {
-    const body = await request.json();
+    const body = req.body;
     const bodyStr = JSON.stringify(body);
 
-    // Google Apps Script exec URL 會回傳 302 redirect
-    // redirect: 'follow' 時 Node fetch 會把 POST 改成 GET，doPost 不會被呼叫
-    // 解法：redirect: 'manual' 取得 Location，再手動 POST 到目標 URL
+    // Google Apps Script redirect handling
     const firstRes = await fetch(SHEETS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -41,14 +40,10 @@ export async function POST(request) {
     }
 
     const text = await finalRes.text().catch(() => '');
-    return NextResponse.json({ status: 'success', upstream: text });
+    return res.status(200).json({ status: 'success', upstream: text });
 
   } catch (err) {
     console.error('[/api/feedback] error:', err);
-    return NextResponse.json(
-      { status: 'error', message: err.message },
-      { status: 500 }
-    );
+    return res.status(500).json({ status: 'error', message: err.message });
   }
 }
-
