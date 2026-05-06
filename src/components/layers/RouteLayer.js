@@ -1,6 +1,7 @@
-import { Polyline, CircleMarker, Popup, LayerGroup } from 'react-leaflet';
+import { Polyline, CircleMarker, Popup, LayerGroup, FeatureGroup } from 'react-leaflet';
 import { BASE_URL } from '@/data/routeData';
 import PopupLightbox from './PopupLightbox';
+import ComfortFeedbackForm from '../forms/ComfortFeedbackForm';
 
 export default function RouteLayer({ route, polylines }) {
   return (
@@ -9,26 +10,65 @@ export default function RouteLayer({ route, polylines }) {
       {Array.isArray(polylines[0])
         ? Array.isArray(polylines[0][0])
           ? polylines.map((seg, si) => (
-            <Polyline
-              key={`${route.id}-seg-${si}`}
-              positions={seg}
-              pathOptions={{
-                color: route.color,
-                weight: 4,
-                opacity: 0.75,
-                dashArray: null,
-              }}
-            />
+            <FeatureGroup key={`${route.id}-seg-group-${si}`}>
+              {/* Visible Polyline */}
+              <Polyline
+                positions={seg}
+                pathOptions={{
+                  color: route.color,
+                  weight: 4,
+                  opacity: 0.75,
+                  dashArray: null,
+                  interactive: false // 讓底下的粗線負責接收點擊
+                }}
+              />
+              {/* Invisible Hit Area */}
+              <Polyline
+                positions={seg}
+                pathOptions={{
+                  color: 'transparent',
+                  weight: 20,
+                  opacity: 0,
+                  interactive: true
+                }}
+              >
+                <Popup className="feedback-popup" minWidth={300} maxWidth={400}>
+                  <ComfortFeedbackForm 
+                    routeName={route.name || `路線 ${route.id}`} 
+                    segmentId={`seg_${si + 1}`} 
+                  />
+                </Popup>
+              </Polyline>
+            </FeatureGroup>
           ))
           : (
-            <Polyline
-              positions={polylines}
-              pathOptions={{
-                color: route.color,
-                weight: 4,
-                opacity: 0.75,
-              }}
-            />
+            <FeatureGroup>
+              <Polyline
+                positions={polylines}
+                pathOptions={{
+                  color: route.color,
+                  weight: 4,
+                  opacity: 0.75,
+                  interactive: false
+                }}
+              />
+              <Polyline
+                positions={polylines}
+                pathOptions={{
+                  color: 'transparent',
+                  weight: 20,
+                  opacity: 0,
+                  interactive: true
+                }}
+              >
+                <Popup className="feedback-popup" minWidth={300} maxWidth={400}>
+                  <ComfortFeedbackForm 
+                    routeName={route.name || `路線 ${route.id}`} 
+                    segmentId={`seg_1`} 
+                  />
+                </Popup>
+              </Polyline>
+            </FeatureGroup>
           )
         : null}
 
