@@ -16,7 +16,6 @@ const SCORES = [
 
 export default function ComfortFeedbackForm({ routeName, segmentId }) {
   const map = useMap();
-  const [step, setStep] = useState(1);
   const [top3, setTop3] = useState([]);
   const [scores, setScores] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -100,44 +99,35 @@ export default function ComfortFeedbackForm({ routeName, segmentId }) {
         {routeName} <span className="text-sm text-slate-500 font-normal ml-1">舒適度評分</span>
       </h3>
 
-      {step === 1 && (
-        <div>
-          <p className="text-sm font-bold text-slate-700 mb-2">
-            在這段路線上，您認為哪 <span className="text-blue-600">3</span> 項因素最影響您的行走體驗？
-          </p>
-          <div className="grid grid-cols-2 gap-2 mb-4">
-            {FACTORS.map(factor => (
-              <label 
-                key={factor} 
-                className={`
-                  flex items-center gap-2 p-2 rounded-lg border text-sm cursor-pointer transition-colors
-                  ${top3.includes(factor) ? 'bg-blue-50 border-blue-400 text-blue-800' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}
-                  ${!top3.includes(factor) && top3.length >= 3 ? 'opacity-50 cursor-not-allowed' : ''}
-                `}
-              >
-                <input
-                  type="checkbox"
-                  className="w-4 h-4 accent-blue-600"
-                  checked={top3.includes(factor)}
-                  onChange={() => handleToggleFactor(factor)}
-                  disabled={!top3.includes(factor) && top3.length >= 3}
-                />
-                {factor}
-              </label>
-            ))}
-          </div>
-          <button
-            className="w-full bg-blue-600 text-white font-bold py-2 rounded-lg disabled:opacity-50"
-            onClick={() => setStep(2)}
-            disabled={top3.length === 0}
-          >
-            下一步
-          </button>
+      <div>
+        <p className="text-sm font-bold text-slate-700 mb-2">
+          在這段路線上，您認為哪 <span className="text-blue-600">1~3</span> 項因素最影響您的行走體驗？
+        </p>
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          {FACTORS.map(factor => (
+            <label 
+              key={factor} 
+              className={`
+                flex items-center gap-2 p-2 rounded-lg border text-sm cursor-pointer transition-colors
+                ${top3.includes(factor) ? 'bg-blue-50 border-blue-400 text-blue-800' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}
+                ${!top3.includes(factor) && top3.length >= 3 ? 'opacity-50 cursor-not-allowed' : ''}
+              `}
+            >
+              <input
+                type="checkbox"
+                className="w-4 h-4 accent-blue-600"
+                checked={top3.includes(factor)}
+                onChange={() => handleToggleFactor(factor)}
+                disabled={!top3.includes(factor) && top3.length >= 3}
+              />
+              {factor}
+            </label>
+          ))}
         </div>
-      )}
+      </div>
 
-      {step === 2 && (
-        <div>
+      {top3.length > 0 && (
+        <div className="mt-4 pt-4 border-t border-slate-100 animate-in fade-in slide-in-from-top-2 duration-300">
           <p className="text-sm font-bold text-slate-700 mb-3">
             請針對您選出的項目，評估實際狀況：
           </p>
@@ -164,22 +154,14 @@ export default function ComfortFeedbackForm({ routeName, segmentId }) {
               </div>
             ))}
           </div>
-          <div className="flex gap-2">
-            <button
-              className="flex-1 bg-slate-200 text-slate-700 font-bold py-2 rounded-lg"
-              onClick={() => setStep(1)}
-              disabled={isSubmitting}
-            >
-              上一步
-            </button>
-            <button
-              className="flex-[2] bg-blue-600 text-white font-bold py-2 rounded-lg disabled:opacity-50 flex justify-center items-center"
-              onClick={handleSubmit}
-              disabled={isSubmitting || top3.some(f => !scores[f])}
-            >
-              {isSubmitting ? '送出中...' : '送出回饋'}
-            </button>
-          </div>
+          
+          <button
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg disabled:opacity-50 flex justify-center items-center transition-colors"
+            onClick={handleSubmit}
+            disabled={isSubmitting || top3.some(f => !scores[f])}
+          >
+            {isSubmitting ? '送出中...' : '送出回饋'}
+          </button>
         </div>
       )}
     </div>
