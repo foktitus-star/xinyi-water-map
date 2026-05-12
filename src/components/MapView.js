@@ -13,6 +13,7 @@ import ComfortLayer from './layers/ComfortLayer';
 import RouteLayer from './layers/RouteLayer';
 import UserLocationLayer from './layers/UserLocationLayer';
 import HistoricalLayer, { HistoricalControl } from './layers/HistoricalLayer';
+import TemperatureLayer, { TemperatureControl, useTemperatureLayer } from './layers/TemperatureLayer';
 
 
 // ── helpers ────────────────────────────────────────────────
@@ -80,6 +81,9 @@ export default function MapView() {
 
   // Historical basemap state (null = none active)
   const [activeHistory, setActiveHistory] = useState(null);
+
+  // Temperature Layer State
+  const { showTemperature, setShowTemperature, temperatureUrl, temperatureLoading } = useTemperatureLayer();
 
   const toggleHistory = (id) =>
     setActiveHistory((prev) => (prev === id ? null : id));
@@ -156,6 +160,7 @@ export default function MapView() {
         {/* ── Modular Layers ── */}
         <ZoningLayer showZoning={showZoning} />
         <ComfortLayer showTrees={showTrees} showSidewalks={showSidewalks} />
+        <TemperatureLayer show={showTemperature} url={temperatureUrl} />
 
         {routes.map((route, ri) =>
           visibility[ri] ? (
@@ -270,6 +275,8 @@ export default function MapView() {
                 />
                 <span className="text-sm leading-tight text-slate-700">🏘️ 都市計畫分區</span>
               </label>
+
+              <TemperatureControl show={showTemperature} onChange={setShowTemperature} loading={temperatureLoading} />
             </div>
 
             {/* Historical maps selector */}

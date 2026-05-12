@@ -460,8 +460,8 @@ export const routes = [
     "id": "route-02",
     "name": "信義之源 陂水之觀",
     "subtitle": "探訪信義區最早的陂塘水利系統",
-    "color": "#22C55E",
-    "colorDark": "#15803D",
+    "color": "#FF408B",
+    "colorDark": "#D81B60",
     "startStation": "永春捷運站",
     "stationCount": 12,
     "stations": [
