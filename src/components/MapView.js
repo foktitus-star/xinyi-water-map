@@ -14,6 +14,7 @@ import RouteLayer from './layers/RouteLayer';
 import UserLocationLayer from './layers/UserLocationLayer';
 import HistoricalLayer, { HistoricalControl, HISTORICAL_MAPS } from './layers/HistoricalLayer';
 import TemperatureLayer, { TemperatureControl, useTemperatureLayer } from './layers/TemperatureLayer';
+import SatelliteLayer, { SatelliteControl, SATELLITE_MAPS } from './layers/SatelliteLayer';
 
 
 // ── helpers ────────────────────────────────────────────────
@@ -85,8 +86,18 @@ export default function MapView() {
     HISTORICAL_MAPS.reduce((acc, hm) => ({ ...acc, [hm.id]: 0.7 }), {})
   );
 
+  // Satellite layer state
+  const [activeSatellite, setActiveSatellite] = useState(null);
+  const [satelliteOpacities, setSatelliteOpacities] = useState(
+    SATELLITE_MAPS.reduce((acc, sm) => ({ ...acc, [sm.id]: 0.7 }), {})
+  );
+
   const handleHistoryOpacityChange = (id, value) => {
     setHistoryOpacities(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleSatelliteOpacityChange = (id, value) => {
+    setSatelliteOpacities(prev => ({ ...prev, [id]: value }));
   };
 
   // Temperature Layer State
@@ -94,6 +105,9 @@ export default function MapView() {
 
   const toggleHistory = (id) =>
     setActiveHistory((prev) => (prev === id ? null : id));
+
+  const toggleSatellite = (id) =>
+    setActiveSatellite((prev) => (prev === id ? null : id));
   
   // Geolocation state
   const [userPos, setUserPos] = useState(null);
@@ -165,6 +179,12 @@ export default function MapView() {
         <HistoricalLayer 
           activeId={activeHistory} 
           opacity={activeHistory ? historyOpacities[activeHistory] : 0.7}
+        />
+
+        {/* ── Satellite layer ── */}
+        <SatelliteLayer 
+          activeId={activeSatellite} 
+          opacity={activeSatellite ? satelliteOpacities[activeSatellite] : 0.7}
         />
 
         {/* ── Modular Layers ── */}
@@ -295,6 +315,14 @@ export default function MapView() {
               toggleHistory={toggleHistory}
               historyOpacities={historyOpacities}
               onOpacityChange={handleHistoryOpacityChange}
+            />
+
+            {/* Satellite layers selector */}
+            <SatelliteControl
+              activeSatellite={activeSatellite}
+              toggleSatellite={toggleSatellite}
+              satelliteOpacities={satelliteOpacities}
+              onOpacityChange={handleSatelliteOpacityChange}
             />
 
             {/* Quick buttons */}
