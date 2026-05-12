@@ -24,11 +24,11 @@ export const HISTORICAL_MAPS = [
     color: '#0284c7', // light blue
   },
   {
-    id: 'am1945',
-    label: '1945 美軍地圖',
+    id: 'am1944',
+    label: '1944 美軍地形圖',
     emoji: '🗺️',
-    url: 'https://gis.sinica.edu.tw/tileserver/file-exists.php?img=AMCityPlan_1945-png-{z}-{x}-{y}',
-    color: '#1d4ed8',
+    url: 'https://gis.sinica.edu.tw/tileserver/file-exists.php?img=AM25K_1944A-png-{z}-{x}-{y}',
+    color: '#ea580c',
   },
   {
     id: 'tm1989',
