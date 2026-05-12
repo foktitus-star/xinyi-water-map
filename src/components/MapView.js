@@ -12,7 +12,7 @@ import ZoningLayer from './layers/ZoningLayer';
 import ComfortLayer from './layers/ComfortLayer';
 import RouteLayer from './layers/RouteLayer';
 import UserLocationLayer from './layers/UserLocationLayer';
-import HistoricalLayer, { HistoricalControl } from './layers/HistoricalLayer';
+import HistoricalLayer, { HistoricalControl, HISTORICAL_MAPS } from './layers/HistoricalLayer';
 import TemperatureLayer, { TemperatureControl, useTemperatureLayer } from './layers/TemperatureLayer';
 
 
@@ -81,6 +81,13 @@ export default function MapView() {
 
   // Historical basemap state (null = none active)
   const [activeHistory, setActiveHistory] = useState(null);
+  const [historyOpacities, setHistoryOpacities] = useState(
+    HISTORICAL_MAPS.reduce((acc, hm) => ({ ...acc, [hm.id]: 0.7 }), {})
+  );
+
+  const handleHistoryOpacityChange = (id, value) => {
+    setHistoryOpacities(prev => ({ ...prev, [id]: value }));
+  };
 
   // Temperature Layer State
   const { showTemperature, setShowTemperature, temperatureUrl, temperatureLoading } = useTemperatureLayer();
@@ -155,7 +162,10 @@ export default function MapView() {
         <MapFlyTo center={userPos} />
 
         {/* ── Historical basemap (below all data layers) ── */}
-        <HistoricalLayer activeId={activeHistory} />
+        <HistoricalLayer 
+          activeId={activeHistory} 
+          opacity={activeHistory ? historyOpacities[activeHistory] : 0.7}
+        />
 
         {/* ── Modular Layers ── */}
         <ZoningLayer showZoning={showZoning} />
@@ -283,6 +293,8 @@ export default function MapView() {
             <HistoricalControl
               activeHistory={activeHistory}
               toggleHistory={toggleHistory}
+              historyOpacities={historyOpacities}
+              onOpacityChange={handleHistoryOpacityChange}
             />
 
             {/* Quick buttons */}
