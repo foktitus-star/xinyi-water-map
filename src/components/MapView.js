@@ -265,6 +265,26 @@ export default function MapView() {
               ))}
             </div>
 
+            {/* Quick buttons for routes */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={allOn}
+                className="flex-1 text-xs py-2 rounded-lg font-medium
+                           bg-blue-50 hover:bg-blue-100 text-blue-800
+                           transition-colors cursor-pointer"
+              >
+                全選
+              </button>
+              <button
+                onClick={allOff}
+                className="flex-1 text-xs py-2 rounded-lg font-medium
+                           bg-slate-100 hover:bg-slate-200 text-slate-700
+                           transition-colors cursor-pointer"
+              >
+                全清
+              </button>
+            </div>
+
             {/* Open Data toggles */}
             <div className="space-y-2 mb-4 pt-3 border-t border-slate-200">
               <label
@@ -324,26 +344,6 @@ export default function MapView() {
               satelliteOpacities={satelliteOpacities}
               onOpacityChange={handleSatelliteOpacityChange}
             />
-
-            {/* Quick buttons */}
-            <div className="flex gap-2">
-              <button
-                onClick={allOn}
-                className="flex-1 text-xs py-2 rounded-lg font-medium
-                           bg-blue-50 hover:bg-blue-100 text-blue-800
-                           transition-colors cursor-pointer"
-              >
-                全選
-              </button>
-              <button
-                onClick={allOff}
-                className="flex-1 text-xs py-2 rounded-lg font-medium
-                           bg-slate-100 hover:bg-slate-200 text-slate-700
-                           transition-colors cursor-pointer"
-              >
-                全清
-              </button>
-            </div>
 
             {/* Legend */}
             <div className="mt-4 pt-3 border-t border-slate-200">
