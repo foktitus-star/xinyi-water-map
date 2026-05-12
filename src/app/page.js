@@ -20,9 +20,15 @@ const MapView = dynamic(() => import('@/components/MapView'), {
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState('map'); // 'usage', 'map', 'layers', 'form', 'history'
+  const [fontSize, setFontSize] = useState('medium'); // 'small', 'medium', 'large'
+
+  // Calculate font scale multiplier
+  const fontScale = fontSize === 'small' ? 0.875 : fontSize === 'large' ? 1.125 : 1;
 
   return (
-    <main className="relative w-full h-dvh flex overflow-hidden bg-slate-900">
+    <main className="relative w-full h-dvh flex overflow-hidden bg-slate-900" style={{
+      '--font-scale': fontScale,
+    }}>
       {/* ── Left Sidebar ── */}
       <nav className="z-[2000] w-24 md:w-32 bg-slate-900/95 backdrop-blur-md border-r border-white/10 flex flex-col items-center py-6 gap-4 shadow-2xl">
         <div className="text-blue-400 text-xl font-black mb-4">信</div>
@@ -73,6 +79,46 @@ export default function HomePage() {
         </button>
 
         <div className="mt-auto opacity-20 text-[10px] font-mono -rotate-90 whitespace-nowrap tracking-[0.3em] text-white">XINYI_MAP</div>
+
+        {/* Font Size Selector */}
+        <div className="mt-4 pt-4 border-t border-white/10 flex flex-col gap-2 w-full px-2">
+          <p className="text-[10px] text-white/50 text-center font-semibold">字體大小</p>
+          <div className="flex gap-1 justify-center">
+            <button
+              onClick={() => setFontSize('small')}
+              className={`px-2 py-1 rounded text-xs font-semibold transition-all ${
+                fontSize === 'small'
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : 'bg-white/10 text-white/60 hover:bg-white/20'
+              }`}
+              title="小"
+            >
+              A
+            </button>
+            <button
+              onClick={() => setFontSize('medium')}
+              className={`px-2 py-1 rounded text-sm font-semibold transition-all ${
+                fontSize === 'medium'
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : 'bg-white/10 text-white/60 hover:bg-white/20'
+              }`}
+              title="中"
+            >
+              A
+            </button>
+            <button
+              onClick={() => setFontSize('large')}
+              className={`px-2 py-1 rounded text-base font-semibold transition-all ${
+                fontSize === 'large'
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : 'bg-white/10 text-white/60 hover:bg-white/20'
+              }`}
+              title="大"
+            >
+              A
+            </button>
+          </div>
+        </div>
       </nav>
 
       {/* ── Main Content Area (Map Background) ── */}
