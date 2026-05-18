@@ -116,6 +116,15 @@ export default function HomePage() {
               side: 'left',
               align: 'start'
             }
+          },
+          {
+            element: '#tour-usage-button',
+            popover: {
+              title: '💡 再次開啟說明',
+              description: '如果您日後需要再次閱讀此導覽，隨時可以點擊地圖左下角的「使用方法」按鈕重新啟動！',
+              side: 'right',
+              align: 'start'
+            }
           }
         ]
       });
@@ -132,15 +141,6 @@ export default function HomePage() {
       <nav id="sidebar-navigation" className="z-[2000] w-24 md:w-32 bg-slate-900/95 backdrop-blur-md border-r border-white/10 flex flex-col items-center py-6 gap-4 shadow-2xl">
         <div className="text-blue-400 text-xl font-black mb-4">信</div>
         
-        <button 
-          onClick={startTour}
-          className={`group relative p-3 rounded-xl transition-all duration-300 text-sm font-semibold ${activeTab === 'usage' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:bg-white/5'}`}
-          title="使用方法 (How to Use)"
-        >
-          <span>❓ 使用方法</span>
-          <span className="absolute left-full ml-4 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">How to Use</span>
-        </button>
-
         <button 
           onClick={() => setActiveTab('map')}
           className={`group relative p-3 rounded-xl transition-all duration-300 text-sm font-semibold ${activeTab === 'map' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:bg-white/5'}`}
@@ -224,7 +224,7 @@ export default function HomePage() {
       <div className="relative flex-1 h-full overflow-hidden">
         {/* The Map stays here at the bottom layer */}
         <div className="absolute inset-0 z-0">
-          <MapView />
+          <MapView onStartTour={startTour} />
         </div>
 
         {/* ── Overlay: Usage Guide ── */}

@@ -69,7 +69,7 @@ function FitBoundsOnLoad() {
 }
 
 // ── Main map component ─────────────────────────────────────
-export default function MapView() {
+export default function MapView({ onStartTour }) {
   const [visibility, setVisibility] = useState(
     routes.map(() => true)
   );
@@ -396,22 +396,38 @@ export default function MapView() {
         {locating ? '⏳' : '📍'}
       </button>
 
-      {/* ── Title overlay (bottom-left) ─────────────────── */}
+      {/* ── Title overlay (bottom-left) ── */}
       <div
         className="
           absolute bottom-4 left-4 z-[1000]
-          bg-white/90 backdrop-blur-md
+          bg-white/95 backdrop-blur-md
           border border-blue-900/10 rounded-2xl
-          px-5 py-3 shadow-xl
-          pointer-events-none
+          px-5 py-3 shadow-xl flex flex-col gap-2.5
         "
       >
-        <h1 className="text-blue-900 text-lg font-bold tracking-widest leading-tight">
-          信水義河
-        </h1>
-        <p className="text-slate-600 text-xs mt-0.5 font-medium">
-          信義社大 · 水文導覽互動地圖
-        </p>
+        <div>
+          <h1 className="text-blue-900 text-lg font-bold tracking-widest leading-tight">
+            信水義河
+          </h1>
+          <p className="text-slate-600 text-xs mt-0.5 font-medium">
+            信義社大 · 水文導覽互動地圖
+          </p>
+        </div>
+
+        <button
+          id="tour-usage-button"
+          onClick={onStartTour}
+          className="
+            flex items-center justify-center gap-2
+            w-full py-2 rounded-xl text-xs font-semibold
+            bg-blue-600 hover:bg-blue-700 text-white
+            shadow-lg shadow-blue-500/20
+            transition-all duration-300 active:scale-95 cursor-pointer
+          "
+          title="使用方法 (How to Use)"
+        >
+          <span>❓ 使用方法</span>
+        </button>
       </div>
     </div>
   );
