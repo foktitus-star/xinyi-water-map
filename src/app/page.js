@@ -60,8 +60,50 @@ export default function HomePage() {
           {
             element: '#layer-panel-toggle',
             popover: {
-              title: '展開圖層控制',
-              description: '點擊此按鈕展開控制面板。您可以勾選多條導覽路線、行道樹遮蔭、人行道範圍、都市計畫分區，甚至是多張百年來的古今歷史地圖進行疊加比對！',
+              title: '📍 圖層控制面板',
+              description: '地圖右上角有一個圖層控制面板（☰ 按鈕），點擊展開後可以看到所有可用的圖層。引導將自動為您展開面板！',
+              side: 'left',
+              align: 'start'
+            },
+            onHighlighted: () => {
+              const isExpanded = !!document.getElementById('layer-control-panel-content');
+              if (!isExpanded) {
+                document.getElementById('layer-panel-toggle')?.click();
+              }
+            }
+          },
+          {
+            element: '#tour-route-toggles',
+            popover: {
+              title: '🚶 水文導覽路線',
+              description: '包含四條不同顏色的水文導覽路線。您可以勾選來顯示或隱藏路線，或點擊地圖上的站點標記查看詳細的水文與歷史故事！也可利用全選/全清按鈕快速切換。',
+              side: 'left',
+              align: 'start'
+            }
+          },
+          {
+            element: '#tour-open-data-toggles',
+            popover: {
+              title: '🌳 開放資料與即時溫度',
+              description: '包含台北市政府開放資料（行道樹遮蔭、人行道範圍、都市計畫分區）以及即時溫度分布。勾選後可利用不透明度滑桿（0-100%）自由調整，幫助您進行跨圖層對照！',
+              side: 'left',
+              align: 'start'
+            }
+          },
+          {
+            element: '#tour-historical-control',
+            popover: {
+              title: '🕰️ 古今地圖（歷史圖資）',
+              description: '提供 1904 臺灣堡圖、1921 地形圖、1939 瑠公水利區域圖、1944 美軍地形圖、1989 地形圖等珍貴歷史地圖。透過透明度調整，讓您一鍵穿梭時空，看見百年水道的河道變遷！',
+              side: 'left',
+              align: 'start'
+            }
+          },
+          {
+            element: '#tour-satellite-control',
+            popover: {
+              title: '🛰️ 衛星影像與環境指數',
+              description: '提供 Esri 高解析衛星影像，以及 Sentinel-2 的真彩色、植被健康指數（NDVI）與濕度指數，讓您以現代遙測視角觀察生態環境。',
               side: 'left',
               align: 'start'
             }
@@ -69,7 +111,7 @@ export default function HomePage() {
           {
             element: '#locate-button',
             popover: {
-              title: '實地定位功能',
+              title: '📍 實地定位功能',
               description: '在戶外踏查時，點擊此按鈕可即時標記您的位置，方便對照當前位置的歷史水道與樹木分布。',
               side: 'left',
               align: 'start'

@@ -112,7 +112,7 @@ export default function SatelliteLayer({ activeId, opacity }) {
  */
 export function SatelliteControl({ activeSatellite, toggleSatellite, satelliteOpacities, onOpacityChange }) {
   return (
-    <div className="space-y-1 mb-4 pt-3 border-t border-slate-200">
+    <div id="tour-satellite-control" className="space-y-1 mb-4 pt-3 border-t border-slate-200">
       <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 mb-2">
         🛰️ 衛星影像
       </p>
