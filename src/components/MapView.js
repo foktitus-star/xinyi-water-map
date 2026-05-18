@@ -5,7 +5,11 @@ import {
   MapContainer,
   TileLayer,
   useMap,
+  useMapEvents,
+  Marker,
+  Popup,
 } from 'react-leaflet';
+import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { routes } from '@/data/routeData';
 import ZoningLayer from './layers/ZoningLayer';
@@ -14,6 +18,15 @@ import RouteLayer from './layers/RouteLayer';
 import UserLocationLayer from './layers/UserLocationLayer';
 import HistoricalLayer, { HistoricalControl, HISTORICAL_MAPS } from './layers/HistoricalLayer';
 import TemperatureLayer, { TemperatureControl, useTemperatureLayer } from './layers/TemperatureLayer';
+import NodeFeedbackForm from './forms/NodeFeedbackForm';
+
+// Fix default icon issue in leaflet
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
 import SatelliteLayer, { SatelliteControl, SATELLITE_MAPS } from './layers/SatelliteLayer';
 
 
@@ -68,6 +81,18 @@ function FitBoundsOnLoad() {
   return null;
 }
 
+// ── Map Click Interaction for Free Marker ────────────────────
+function AddMarkerInteraction({ isAddMode, onAddMarker }) {
+  useMapEvents({
+    click(e) {
+      if (isAddMode) {
+        onAddMarker(e.latlng);
+      }
+    }
+  });
+  return null;
+}
+
 // ── Main map component ─────────────────────────────────────
 export default function MapView({ onStartTour }) {
   const [visibility, setVisibility] = useState(
@@ -109,11 +134,20 @@ export default function MapView({ onStartTour }) {
 
   const toggleSatellite = (id) =>
     setActiveSatellite((prev) => (prev === id ? null : id));
-  
+
   // Geolocation state
   const [userPos, setUserPos] = useState(null);
   const [accuracy, setAccuracy] = useState(null);
   const [locating, setLocating] = useState(false);
+
+  // Add Free Marker state
+  const [isAddMarkerMode, setIsAddMarkerMode] = useState(false);
+  const [newMarkerPos, setNewMarkerPos] = useState(null);
+
+  const handleAddMarker = (latlng) => {
+    setNewMarkerPos(latlng);
+    setIsAddMarkerMode(false); // Disable mode after placing the marker
+  };
 
   const polylines = useMemo(
     () => routes.map((r) => buildPolyline(r)),
@@ -175,16 +209,17 @@ export default function MapView({ onStartTour }) {
         />
         <FitBoundsOnLoad />
         <MapFlyTo center={userPos} />
+        <AddMarkerInteraction isAddMode={isAddMarkerMode} onAddMarker={handleAddMarker} />
 
         {/* ── Historical basemap (below all data layers) ── */}
-        <HistoricalLayer 
-          activeId={activeHistory} 
+        <HistoricalLayer
+          activeId={activeHistory}
           opacity={activeHistory ? historyOpacities[activeHistory] : 0.7}
         />
 
         {/* ── Satellite layer ── */}
-        <SatelliteLayer 
-          activeId={activeSatellite} 
+        <SatelliteLayer
+          activeId={activeSatellite}
           opacity={activeSatellite ? satelliteOpacities[activeSatellite] : 0.7}
         />
 
@@ -204,6 +239,26 @@ export default function MapView({ onStartTour }) {
         )}
 
         <UserLocationLayer position={userPos} accuracy={accuracy} />
+
+        {/* Free Marker Form */}
+        {newMarkerPos && (
+          <Marker position={newMarkerPos}>
+            <Popup
+              className="feedback-popup"
+              minWidth={300}
+              maxWidth={400}
+              eventHandlers={{
+                remove: () => setNewMarkerPos(null) // Clear state when closed
+              }}
+            >
+              <NodeFeedbackForm
+                lat={newMarkerPos.lat}
+                lng={newMarkerPos.lng}
+                onClose={() => setNewMarkerPos(null)}
+              />
+            </Popup>
+          </Marker>
+        )}
 
       </MapContainer>
 
@@ -337,12 +392,12 @@ export default function MapView({ onStartTour }) {
                     flex items-center gap-2 px-10 transition-all duration-300 ease-in-out
                     ${showZoning ? 'h-6 opacity-100 mt-0.5' : 'h-0 opacity-0 overflow-hidden'}
                   `}>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="1" 
-                      step="0.01" 
-                      value={zoningOpacity} 
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={zoningOpacity}
                       onChange={(e) => setZoningOpacity(parseFloat(e.target.value))}
                       className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#fb923c]"
                     />
@@ -364,17 +419,64 @@ export default function MapView({ onStartTour }) {
               onOpacityChange={handleHistoryOpacityChange}
             />
 
-            {/* Satellite layers selector */}
-            <SatelliteControl
-              activeSatellite={activeSatellite}
-              toggleSatellite={toggleSatellite}
-              satelliteOpacities={satelliteOpacities}
-              onOpacityChange={handleSatelliteOpacityChange}
-            />
+            {/* Quick buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={allOn}
+                className="flex-1 text-xs py-2 rounded-lg font-medium
+                           bg-blue-50 hover:bg-blue-100 text-blue-800
+                           transition-colors cursor-pointer"
+              >
+                全選
+              </button>
+              <button
+                onClick={allOff}
+                className="flex-1 text-xs py-2 rounded-lg font-medium
+                           bg-slate-100 hover:bg-slate-200 text-slate-700
+                           transition-colors cursor-pointer"
+              >
+                全清
+              </button>
+            </div>
 
-          </div>
+            {/* Legend */}
+            <div className="mt-4 pt-3 border-t border-slate-200">
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                共 {routes.reduce((s, r) => s + r.stations.length, 0)} 個站點
+                ・點擊站點查看詳情
+              </p>
+            </div>
+
+            {/* Free Marker Toggle */}
+            <div className="mt-4 pt-3 border-t border-slate-200">
+              <button
+                onClick={() => {
+                  setIsAddMarkerMode(!isAddMarkerMode);
+                  if (newMarkerPos) setNewMarkerPos(null);
+                }}
+                className={`
+                  w-full py-2.5 rounded-lg font-bold text-sm transition-all
+                  flex items-center justify-center gap-2
+                  ${isAddMarkerMode
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}
+                `}
+              >
+                {isAddMarkerMode ? (
+                  <><span>🎯</span> 點擊地圖新增標記 (點此取消)</>
+                ) : (
+                  <><span>📍</span> 自由新增地景標記</>
+                )}
+              </button>
+            </div>
+          </>
         )}
       </div>
+
+      {/* Global overlay cursor hint for add mode */}
+      {isAddMarkerMode && (
+        <div className="absolute inset-0 z-[999] pointer-events-none cursor-crosshair"></div>
+      )}
 
       {/* ── Locate Button (Below panel toggle or bottom right) ── */}
       <button
