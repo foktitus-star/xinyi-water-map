@@ -419,25 +419,13 @@ export default function MapView({ onStartTour }) {
               onOpacityChange={handleHistoryOpacityChange}
             />
 
-            {/* Quick buttons */}
-            <div className="flex gap-2">
-              <button
-                onClick={allOn}
-                className="flex-1 text-xs py-2 rounded-lg font-medium
-                           bg-blue-50 hover:bg-blue-100 text-blue-800
-                           transition-colors cursor-pointer"
-              >
-                全選
-              </button>
-              <button
-                onClick={allOff}
-                className="flex-1 text-xs py-2 rounded-lg font-medium
-                           bg-slate-100 hover:bg-slate-200 text-slate-700
-                           transition-colors cursor-pointer"
-              >
-                全清
-              </button>
-            </div>
+            {/* Satellite layers selector */}
+            <SatelliteControl
+              activeSatellite={activeSatellite}
+              toggleSatellite={toggleSatellite}
+              satelliteOpacities={satelliteOpacities}
+              onOpacityChange={handleSatelliteOpacityChange}
+            />
 
             {/* Legend */}
             <div className="mt-4 pt-3 border-t border-slate-200">
@@ -469,7 +457,7 @@ export default function MapView({ onStartTour }) {
                 )}
               </button>
             </div>
-          </>
+          </div>
         )}
       </div>
 
