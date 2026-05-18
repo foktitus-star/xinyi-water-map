@@ -18,6 +18,8 @@ import RouteLayer from './layers/RouteLayer';
 import UserLocationLayer from './layers/UserLocationLayer';
 import HistoricalLayer, { HistoricalControl, HISTORICAL_MAPS } from './layers/HistoricalLayer';
 import TemperatureLayer, { TemperatureControl, useTemperatureLayer } from './layers/TemperatureLayer';
+import DataSourceControl from './layers/DataSourceControl';
+<<<<<<< HEAD
 import NodeFeedbackForm from './forms/NodeFeedbackForm';
 
 // Fix default icon issue in leaflet
@@ -27,6 +29,9 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
+=======
+import SatelliteLayer, { SatelliteControl, SATELLITE_MAPS } from './layers/SatelliteLayer';
+>>>>>>> 0a52e8e75c346b9fce9c7688f8034542591b12b3
 
 
 // ── helpers ────────────────────────────────────────────────
@@ -93,7 +98,7 @@ function AddMarkerInteraction({ isAddMode, onAddMarker }) {
 }
 
 // ── Main map component ─────────────────────────────────────
-export default function MapView() {
+export default function MapView({ onStartTour }) {
   const [visibility, setVisibility] = useState(
     routes.map(() => true)
   );
@@ -103,6 +108,7 @@ export default function MapView() {
   const [showTrees, setShowTrees] = useState(false);
   const [showSidewalks, setShowSidewalks] = useState(false);
   const [showZoning, setShowZoning] = useState(false);
+  const [zoningOpacity, setZoningOpacity] = useState(0.45);
 
   // Historical basemap state (null = none active)
   const [activeHistory, setActiveHistory] = useState(null);
@@ -110,8 +116,18 @@ export default function MapView() {
     HISTORICAL_MAPS.reduce((acc, hm) => ({ ...acc, [hm.id]: 0.7 }), {})
   );
 
+  // Satellite layer state
+  const [activeSatellite, setActiveSatellite] = useState(null);
+  const [satelliteOpacities, setSatelliteOpacities] = useState(
+    SATELLITE_MAPS.reduce((acc, sm) => ({ ...acc, [sm.id]: 0.7 }), {})
+  );
+
   const handleHistoryOpacityChange = (id, value) => {
     setHistoryOpacities(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleSatelliteOpacityChange = (id, value) => {
+    setSatelliteOpacities(prev => ({ ...prev, [id]: value }));
   };
 
   // Temperature Layer State
@@ -119,6 +135,9 @@ export default function MapView() {
 
   const toggleHistory = (id) =>
     setActiveHistory((prev) => (prev === id ? null : id));
+
+  const toggleSatellite = (id) =>
+    setActiveSatellite((prev) => (prev === id ? null : id));
   
   // Geolocation state
   const [userPos, setUserPos] = useState(null);
@@ -178,7 +197,7 @@ export default function MapView() {
   };
 
   return (
-    <div className="relative w-full h-full">
+    <div id="map-container-wrapper" className="relative w-full h-full">
       {/* ── Map ─────────────────────────────────────────── */}
       <MapContainer
         center={[25.033, 121.565]}
@@ -202,8 +221,14 @@ export default function MapView() {
           opacity={activeHistory ? historyOpacities[activeHistory] : 0.7}
         />
 
+        {/* ── Satellite layer ── */}
+        <SatelliteLayer 
+          activeId={activeSatellite} 
+          opacity={activeSatellite ? satelliteOpacities[activeSatellite] : 0.7}
+        />
+
         {/* ── Modular Layers ── */}
-        <ZoningLayer showZoning={showZoning} />
+        <ZoningLayer showZoning={showZoning} opacity={zoningOpacity} />
         <ComfortLayer showTrees={showTrees} showSidewalks={showSidewalks} />
         <TemperatureLayer show={showTemperature} url={temperatureUrl} />
 
@@ -255,6 +280,7 @@ export default function MapView() {
       >
         {/* Toggle button */}
         <button
+          id="layer-panel-toggle"
           onClick={() => setExpandPanel(!expandPanel)}
           className={`
             flex items-center justify-center
@@ -269,79 +295,124 @@ export default function MapView() {
         </button>
 
         {expandPanel && (
-          <>
+          <div id="layer-control-panel-content" className="w-full">
             <h3 className="text-base font-bold mb-3 tracking-wide text-blue-900">
               圖層控制
             </h3>
 
             {/* Route toggles */}
-            <div className="space-y-2 mb-4">
-              {routes.map((route, idx) => (
+            <div id="tour-route-toggles" className="w-full">
+              <div className="space-y-2 mb-4">
+                {routes.map((route, idx) => (
+                  <label
+                    key={route.id}
+                    className="flex items-center gap-3 cursor-pointer
+                               hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={visibility[idx]}
+                      onChange={() => toggleRoute(idx)}
+                      className="w-5 h-5 rounded accent-current cursor-pointer"
+                      style={{ accentColor: route.color }}
+                    />
+                    <span
+                      className="w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ background: route.color }}
+                    />
+                    <span className="text-sm leading-tight">
+                      {ROUTE_LABELS[idx].label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              {/* Quick buttons for routes */}
+              <div className="flex gap-2 mb-4">
+                <button
+                  onClick={allOn}
+                  className="flex-1 text-xs py-2 rounded-lg font-medium
+                             bg-blue-50 hover:bg-blue-100 text-blue-800
+                             transition-colors cursor-pointer"
+                >
+                  全選
+                </button>
+                <button
+                  onClick={allOff}
+                  className="flex-1 text-xs py-2 rounded-lg font-medium
+                             bg-slate-100 hover:bg-slate-200 text-slate-700
+                             transition-colors cursor-pointer"
+                >
+                  全清
+                </button>
+              </div>
+            </div>
+
+            {/* Open Data toggles */}
+            <div id="tour-open-data-toggles" className="w-full">
+              <div className="space-y-2 mb-4 pt-3 border-t border-slate-200">
                 <label
-                  key={route.id}
                   className="flex items-center gap-3 cursor-pointer
                              hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors"
                 >
                   <input
                     type="checkbox"
-                    checked={visibility[idx]}
-                    onChange={() => toggleRoute(idx)}
-                    className="w-5 h-5 rounded accent-current cursor-pointer"
-                    style={{ accentColor: route.color }}
+                    checked={showTrees}
+                    onChange={() => setShowTrees(!showTrees)}
+                    className="w-5 h-5 rounded accent-[#16a34a] cursor-pointer"
                   />
-                  <span
-                    className="w-3 h-3 rounded-full flex-shrink-0"
-                    style={{ background: route.color }}
-                  />
-                  <span className="text-sm leading-tight">
-                    {ROUTE_LABELS[idx].label}
-                  </span>
+                  <span className="text-sm leading-tight text-slate-700">🌳 行道樹遮蔭</span>
                 </label>
-              ))}
-            </div>
 
-            {/* Open Data toggles */}
-            <div className="space-y-2 mb-4 pt-3 border-t border-slate-200">
-              <label
-                className="flex items-center gap-3 cursor-pointer
-                           hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors"
-              >
-                <input
-                  type="checkbox"
-                  checked={showTrees}
-                  onChange={() => setShowTrees(!showTrees)}
-                  className="w-5 h-5 rounded accent-[#16a34a] cursor-pointer"
-                />
-                <span className="text-sm leading-tight text-slate-700">🌳 行道樹遮蔭</span>
-              </label>
+                <label
+                  className="flex items-center gap-3 cursor-pointer
+                             hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors"
+                >
+                  <input
+                    type="checkbox"
+                    checked={showSidewalks}
+                    onChange={() => setShowSidewalks(!showSidewalks)}
+                    className="w-5 h-5 rounded accent-[#60a5fa] cursor-pointer"
+                  />
+                  <span className="text-sm leading-tight text-slate-700">🚶 人行道範圍</span>
+                </label>
 
-              <label
-                className="flex items-center gap-3 cursor-pointer
-                           hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors"
-              >
-                <input
-                  type="checkbox"
-                  checked={showSidewalks}
-                  onChange={() => setShowSidewalks(!showSidewalks)}
-                  className="w-5 h-5 rounded accent-[#60a5fa] cursor-pointer"
-                />
-                <span className="text-sm leading-tight text-slate-700">🚶 人行道範圍</span>
-              </label>
+                <div className="flex flex-col mb-1">
+                  <label
+                    className="flex items-center gap-3 cursor-pointer
+                               hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={showZoning}
+                      onChange={() => setShowZoning(!showZoning)}
+                      className="w-5 h-5 rounded accent-[#fb923c] cursor-pointer"
+                    />
+                    <span className="text-sm leading-tight text-slate-700">🏘️ 都市計畫分區</span>
+                  </label>
 
-              <label
-                className="flex items-center gap-3 cursor-pointer
-                           hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors"
-              >
-                <input
-                  type="checkbox"
-                  checked={showZoning}
-                  onChange={() => setShowZoning(!showZoning)}
-                  className="w-5 h-5 rounded accent-[#fb923c] cursor-pointer"
-                />
-                <span className="text-sm leading-tight text-slate-700">🏘️ 都市計畫分區</span>
-              </label>
+                  {/* Opacity Slider */}
+                  <div className={`
+                    flex items-center gap-2 px-10 transition-all duration-300 ease-in-out
+                    ${showZoning ? 'h-6 opacity-100 mt-0.5' : 'h-0 opacity-0 overflow-hidden'}
+                  `}>
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max="1" 
+                      step="0.01" 
+                      value={zoningOpacity} 
+                      onChange={(e) => setZoningOpacity(parseFloat(e.target.value))}
+                      className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#fb923c]"
+                    />
+                    <span className="text-[10px] font-mono font-bold text-slate-500 w-8 text-right">
+                      {Math.round(zoningOpacity * 100)}%
+                    </span>
+                  </div>
+                </div>
 
-              <TemperatureControl show={showTemperature} onChange={setShowTemperature} loading={temperatureLoading} />
+                <TemperatureControl show={showTemperature} onChange={setShowTemperature} loading={temperatureLoading} />
+              </div>
             </div>
 
             {/* Historical maps selector */}
@@ -352,26 +423,15 @@ export default function MapView() {
               onOpacityChange={handleHistoryOpacityChange}
             />
 
-            {/* Quick buttons */}
-            <div className="flex gap-2">
-              <button
-                onClick={allOn}
-                className="flex-1 text-xs py-2 rounded-lg font-medium
-                           bg-blue-50 hover:bg-blue-100 text-blue-800
-                           transition-colors cursor-pointer"
-              >
-                全選
-              </button>
-              <button
-                onClick={allOff}
-                className="flex-1 text-xs py-2 rounded-lg font-medium
-                           bg-slate-100 hover:bg-slate-200 text-slate-700
-                           transition-colors cursor-pointer"
-              >
-                全清
-              </button>
-            </div>
+            {/* Satellite layers selector */}
+            <SatelliteControl
+              activeSatellite={activeSatellite}
+              toggleSatellite={toggleSatellite}
+              satelliteOpacities={satelliteOpacities}
+              onOpacityChange={handleSatelliteOpacityChange}
+            />
 
+<<<<<<< HEAD
             {/* Legend */}
             <div className="mt-4 pt-3 border-t border-slate-200">
               <p className="text-[11px] text-slate-500 leading-relaxed">
@@ -403,6 +463,9 @@ export default function MapView() {
               </button>
             </div>
           </>
+=======
+          </div>
+>>>>>>> 0a52e8e75c346b9fce9c7688f8034542591b12b3
         )}
       </div>
 
@@ -413,6 +476,7 @@ export default function MapView() {
 
       {/* ── Locate Button (Below panel toggle or bottom right) ── */}
       <button
+        id="locate-button"
         onClick={handleLocate}
         disabled={locating}
         className={`
@@ -430,23 +494,42 @@ export default function MapView() {
         {locating ? '⏳' : '📍'}
       </button>
 
-      {/* ── Title overlay (bottom-left) ─────────────────── */}
+      {/* ── Title overlay (bottom-left) ── */}
       <div
         className="
           absolute bottom-4 left-4 z-[1000]
-          bg-white/90 backdrop-blur-md
+          bg-white/95 backdrop-blur-md
           border border-blue-900/10 rounded-2xl
-          px-5 py-3 shadow-xl
-          pointer-events-none
+          px-5 py-3 shadow-xl flex flex-col gap-2.5
         "
       >
-        <h1 className="text-blue-900 text-lg font-bold tracking-widest leading-tight">
-          信水義河
-        </h1>
-        <p className="text-slate-600 text-xs mt-0.5 font-medium">
-          信義社大 · 水文導覽互動地圖
-        </p>
+        <div>
+          <h1 className="text-blue-900 text-lg font-bold tracking-widest leading-tight">
+            信水義河
+          </h1>
+          <p className="text-slate-600 text-xs mt-0.5 font-medium">
+            信義社大 · 水文導覽互動地圖
+          </p>
+        </div>
+
+        <button
+          id="tour-usage-button"
+          onClick={onStartTour}
+          className="
+            flex items-center justify-center gap-2
+            w-full py-2 rounded-xl text-xs font-semibold
+            bg-blue-600 hover:bg-blue-700 text-white
+            shadow-lg shadow-blue-500/20
+            transition-all duration-300 active:scale-95 cursor-pointer
+          "
+          title="使用方法 (How to Use)"
+        >
+          <span>❓ 使用方法</span>
+        </button>
       </div>
+
+      {/* ── Data Source Control (bottom-right) ── */}
+      <DataSourceControl />
     </div>
   );
 }

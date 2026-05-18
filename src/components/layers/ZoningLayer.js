@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { GeoJSON } from 'react-leaflet';
 
-export default function ZoningLayer({ showZoning }) {
+export default function ZoningLayer({ showZoning, opacity = 0.45 }) {
   const [zoning, setZoning] = useState(null);
 
   useEffect(() => {
@@ -28,10 +28,10 @@ export default function ZoningLayer({ showZoning }) {
         
         return {
           fillColor: color,
-          fillOpacity: 0.45,
+          fillOpacity: opacity,
           color: color,
           weight: 1,
-          opacity: 0.6
+          opacity: Math.min(1.0, opacity * 1.33)
         };
       }}
       onEachFeature={(feature, layer) => {
