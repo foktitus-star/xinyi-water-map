@@ -2,6 +2,7 @@ import { Polyline, CircleMarker, Popup, LayerGroup, FeatureGroup } from 'react-l
 import { BASE_URL } from '@/data/routeData';
 import PopupLightbox from './PopupLightbox';
 import RouteFeedbackForm from '../forms/RouteFeedbackForm';
+import StationPopupContent from './StationPopupContent';
 
 export default function RouteLayer({ route, polylines }) {
   return (
@@ -93,38 +94,7 @@ export default function RouteLayer({ route, polylines }) {
             className="custom-popup"
           >
             <PopupLightbox />
-            <div className="popup-content">
-              <div
-                className="popup-badge"
-                style={{ background: route.color }}
-              >
-                {station.badge || station.id}
-              </div>
-              <h3 className="popup-title">{station.name}</h3>
-              <p className="popup-hook">{station.hook}</p>
-              {station.body && (
-                <p className="popup-body">{station.body}</p>
-              )}
-              {station.imgs && station.imgs.length > 0 && (
-                <div className="popup-images">
-                  {station.imgs.map((img, i) => (
-                    <figure key={i} className="popup-figure">
-                      <img
-                        src={`${BASE_URL}${img.src}`}
-                        alt={img.cap || station.name}
-                        loading="lazy"
-                        className="popup-img cursor-pointer hover:opacity-90 transition-opacity"
-                      />
-                      {img.cap && (
-                        <figcaption className="popup-caption">
-                          {img.cap}
-                        </figcaption>
-                      )}
-                    </figure>
-                  ))}
-                </div>
-              )}
-            </div>
+            <StationPopupContent station={station} routeColor={route.color} />
           </Popup>
         </CircleMarker>
       ))}
