@@ -5,7 +5,7 @@ export default function DataSourceControl() {
 
   return (
     <div 
-      className="absolute bottom-6 right-3 z-[1000] flex flex-col items-end"
+      className="absolute bottom-[68px] left-4 z-[1000] flex flex-col items-start"
       onMouseEnter={() => setIsExpanded(true)}
       onMouseLeave={() => setIsExpanded(false)}
       onClick={() => setIsExpanded(!isExpanded)}
@@ -14,7 +14,7 @@ export default function DataSourceControl() {
       <div 
         className={`
           bg-white/95 backdrop-blur-md border border-slate-200/60 shadow-xl rounded-xl overflow-hidden
-          transition-all duration-300 ease-out origin-bottom-right
+          transition-all duration-300 ease-out origin-bottom-left
           ${isExpanded ? 'max-h-48 opacity-100 scale-100 mb-2' : 'max-h-0 opacity-0 scale-95 mb-0'}
         `}
       >
