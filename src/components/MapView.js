@@ -18,11 +18,7 @@ import RouteLayer from './layers/RouteLayer';
 import UserLocationLayer from './layers/UserLocationLayer';
 import HistoricalLayer, { HistoricalControl, HISTORICAL_MAPS } from './layers/HistoricalLayer';
 import TemperatureLayer, { TemperatureControl, useTemperatureLayer } from './layers/TemperatureLayer';
-<<<<<<< HEAD
 import DataSourceControl from './layers/DataSourceControl';
-<<<<<<< HEAD
-=======
->>>>>>> 890281f1ce11d2976e81f8e2f293ad98d00c9117
 import NodeFeedbackForm from './forms/NodeFeedbackForm';
 
 // Fix default icon issue in leaflet
@@ -32,13 +28,8 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
-<<<<<<< HEAD
-=======
+
 import SatelliteLayer, { SatelliteControl, SATELLITE_MAPS } from './layers/SatelliteLayer';
->>>>>>> 0a52e8e75c346b9fce9c7688f8034542591b12b3
-=======
-import SatelliteLayer, { SatelliteControl, SATELLITE_MAPS } from './layers/SatelliteLayer';
->>>>>>> 890281f1ce11d2976e81f8e2f293ad98d00c9117
 
 
 // ── helpers ────────────────────────────────────────────────
@@ -450,10 +441,6 @@ export default function MapView({ onStartTour }) {
               </button>
             </div>
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 890281f1ce11d2976e81f8e2f293ad98d00c9117
             {/* Legend */}
             <div className="mt-4 pt-3 border-t border-slate-200">
               <p className="text-[11px] text-slate-500 leading-relaxed">
