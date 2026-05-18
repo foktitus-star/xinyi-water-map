@@ -139,7 +139,14 @@ export default function HomePage() {
     }}>
       {/* ── Left Sidebar ── */}
       <nav id="sidebar-navigation" className="z-[2000] w-24 md:w-32 bg-slate-900/95 backdrop-blur-md border-r border-white/10 flex flex-col items-center py-6 gap-4 shadow-2xl">
-        <div className="text-blue-400 text-xl font-black mb-4">信</div>
+        <div className="flex flex-col items-center text-center px-1 mb-4 gap-1.5">
+          <h1 className="text-blue-400 text-sm md:text-base font-black tracking-widest leading-tight">
+            信水義河
+          </h1>
+          <p className="text-slate-500 text-[8px] md:text-[9px] leading-tight font-semibold">
+            信義社大<br />水文導覽地圖
+          </p>
+        </div>
         
         <button 
           onClick={() => setActiveTab('map')}
