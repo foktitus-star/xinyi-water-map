@@ -18,8 +18,11 @@ import RouteLayer from './layers/RouteLayer';
 import UserLocationLayer from './layers/UserLocationLayer';
 import HistoricalLayer, { HistoricalControl, HISTORICAL_MAPS } from './layers/HistoricalLayer';
 import TemperatureLayer, { TemperatureControl, useTemperatureLayer } from './layers/TemperatureLayer';
+<<<<<<< HEAD
 import DataSourceControl from './layers/DataSourceControl';
 <<<<<<< HEAD
+=======
+>>>>>>> 890281f1ce11d2976e81f8e2f293ad98d00c9117
 import NodeFeedbackForm from './forms/NodeFeedbackForm';
 
 // Fix default icon issue in leaflet
@@ -29,9 +32,13 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
+<<<<<<< HEAD
 =======
 import SatelliteLayer, { SatelliteControl, SATELLITE_MAPS } from './layers/SatelliteLayer';
 >>>>>>> 0a52e8e75c346b9fce9c7688f8034542591b12b3
+=======
+import SatelliteLayer, { SatelliteControl, SATELLITE_MAPS } from './layers/SatelliteLayer';
+>>>>>>> 890281f1ce11d2976e81f8e2f293ad98d00c9117
 
 
 // ── helpers ────────────────────────────────────────────────
@@ -138,7 +145,7 @@ export default function MapView({ onStartTour }) {
 
   const toggleSatellite = (id) =>
     setActiveSatellite((prev) => (prev === id ? null : id));
-  
+
   // Geolocation state
   const [userPos, setUserPos] = useState(null);
   const [accuracy, setAccuracy] = useState(null);
@@ -216,14 +223,14 @@ export default function MapView({ onStartTour }) {
         <AddMarkerInteraction isAddMode={isAddMarkerMode} onAddMarker={handleAddMarker} />
 
         {/* ── Historical basemap (below all data layers) ── */}
-        <HistoricalLayer 
-          activeId={activeHistory} 
+        <HistoricalLayer
+          activeId={activeHistory}
           opacity={activeHistory ? historyOpacities[activeHistory] : 0.7}
         />
 
         {/* ── Satellite layer ── */}
-        <SatelliteLayer 
-          activeId={activeSatellite} 
+        <SatelliteLayer
+          activeId={activeSatellite}
           opacity={activeSatellite ? satelliteOpacities[activeSatellite] : 0.7}
         />
 
@@ -247,15 +254,15 @@ export default function MapView({ onStartTour }) {
         {/* Free Marker Form */}
         {newMarkerPos && (
           <Marker position={newMarkerPos}>
-            <Popup 
-              className="feedback-popup" 
-              minWidth={300} 
+            <Popup
+              className="feedback-popup"
+              minWidth={300}
               maxWidth={400}
               eventHandlers={{
                 remove: () => setNewMarkerPos(null) // Clear state when closed
               }}
             >
-              <NodeFeedbackForm 
+              <NodeFeedbackForm
                 lat={newMarkerPos.lat}
                 lng={newMarkerPos.lng}
                 onClose={() => setNewMarkerPos(null)}
@@ -396,12 +403,12 @@ export default function MapView({ onStartTour }) {
                     flex items-center gap-2 px-10 transition-all duration-300 ease-in-out
                     ${showZoning ? 'h-6 opacity-100 mt-0.5' : 'h-0 opacity-0 overflow-hidden'}
                   `}>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="1" 
-                      step="0.01" 
-                      value={zoningOpacity} 
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={zoningOpacity}
                       onChange={(e) => setZoningOpacity(parseFloat(e.target.value))}
                       className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#fb923c]"
                     />
@@ -423,15 +430,30 @@ export default function MapView({ onStartTour }) {
               onOpacityChange={handleHistoryOpacityChange}
             />
 
-            {/* Satellite layers selector */}
-            <SatelliteControl
-              activeSatellite={activeSatellite}
-              toggleSatellite={toggleSatellite}
-              satelliteOpacities={satelliteOpacities}
-              onOpacityChange={handleSatelliteOpacityChange}
-            />
+            {/* Quick buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={allOn}
+                className="flex-1 text-xs py-2 rounded-lg font-medium
+                           bg-blue-50 hover:bg-blue-100 text-blue-800
+                           transition-colors cursor-pointer"
+              >
+                全選
+              </button>
+              <button
+                onClick={allOff}
+                className="flex-1 text-xs py-2 rounded-lg font-medium
+                           bg-slate-100 hover:bg-slate-200 text-slate-700
+                           transition-colors cursor-pointer"
+              >
+                全清
+              </button>
+            </div>
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 890281f1ce11d2976e81f8e2f293ad98d00c9117
             {/* Legend */}
             <div className="mt-4 pt-3 border-t border-slate-200">
               <p className="text-[11px] text-slate-500 leading-relaxed">
@@ -439,7 +461,7 @@ export default function MapView({ onStartTour }) {
                 ・點擊站點查看詳情
               </p>
             </div>
-            
+
             {/* Free Marker Toggle */}
             <div className="mt-4 pt-3 border-t border-slate-200">
               <button
@@ -450,8 +472,8 @@ export default function MapView({ onStartTour }) {
                 className={`
                   w-full py-2.5 rounded-lg font-bold text-sm transition-all
                   flex items-center justify-center gap-2
-                  ${isAddMarkerMode 
-                    ? 'bg-blue-600 text-white shadow-md' 
+                  ${isAddMarkerMode
+                    ? 'bg-blue-600 text-white shadow-md'
                     : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}
                 `}
               >
@@ -463,9 +485,12 @@ export default function MapView({ onStartTour }) {
               </button>
             </div>
           </>
+<<<<<<< HEAD
 =======
           </div>
 >>>>>>> 0a52e8e75c346b9fce9c7688f8034542591b12b3
+=======
+>>>>>>> 890281f1ce11d2976e81f8e2f293ad98d00c9117
         )}
       </div>
 
