@@ -158,7 +158,7 @@ export default function MapView() {
   };
 
   return (
-    <div className="relative w-full h-full">
+    <div id="map-container-wrapper" className="relative w-full h-full">
       {/* ── Map ─────────────────────────────────────────── */}
       <MapContainer
         center={[25.033, 121.565]}
@@ -220,6 +220,7 @@ export default function MapView() {
       >
         {/* Toggle button */}
         <button
+          id="layer-panel-toggle"
           onClick={() => setExpandPanel(!expandPanel)}
           className={`
             flex items-center justify-center
@@ -358,6 +359,7 @@ export default function MapView() {
 
       {/* ── Locate Button (Below panel toggle or bottom right) ── */}
       <button
+        id="locate-button"
         onClick={handleLocate}
         disabled={locating}
         className={`

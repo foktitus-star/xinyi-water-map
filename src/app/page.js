@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
+import { driver } from 'driver.js';
+import 'driver.js/dist/driver.css';
 
 // Leaflet needs `window` — load only on client side
 const MapView = dynamic(() => import('@/components/MapView'), {
@@ -25,16 +27,71 @@ export default function HomePage() {
   // Calculate font scale multiplier
   const fontScale = fontSize === 'small' ? 0.875 : fontSize === 'large' ? 1.125 : 1;
 
+  const startTour = () => {
+    setActiveTab('map');
+    
+    setTimeout(() => {
+      const driverObj = driver({
+        showProgress: true,
+        animate: true,
+        overlayColor: 'rgba(15, 15, 26, 0.75)',
+        nextBtnText: '下一步 →',
+        prevBtnText: '← 上一步',
+        doneBtnText: '完成 🎉',
+        steps: [
+          {
+            element: '#map-container-wrapper',
+            popover: {
+              title: '歡迎使用「信水義河」互動地圖！',
+              description: '這是一個專為信義社大水文導覽設計的互動地圖。您可以在此處探索信義區的水道軌跡與環境變遷。',
+              side: 'center',
+              align: 'start'
+            }
+          },
+          {
+            element: '#sidebar-navigation',
+            popover: {
+              title: '左側選單導覽',
+              description: '使用左側的面板可以在地圖、圖層說明、水文回饋表單與歷史故事之間自由切換，而地圖將會持續在背景為您保留狀態！',
+              side: 'right',
+              align: 'start'
+            }
+          },
+          {
+            element: '#layer-panel-toggle',
+            popover: {
+              title: '展開圖層控制',
+              description: '點擊此按鈕展開控制面板。您可以勾選多條導覽路線、行道樹遮蔭、人行道範圍、都市計畫分區，甚至是多張百年來的古今歷史地圖進行疊加比對！',
+              side: 'left',
+              align: 'start'
+            }
+          },
+          {
+            element: '#locate-button',
+            popover: {
+              title: '實地定位功能',
+              description: '在戶外踏查時，點擊此按鈕可即時標記您的位置，方便對照當前位置的歷史水道與樹木分布。',
+              side: 'left',
+              align: 'start'
+            }
+          }
+        ]
+      });
+
+      driverObj.drive();
+    }, 300);
+  };
+
   return (
     <main className="relative w-full h-dvh flex overflow-hidden bg-slate-900" style={{
       '--font-scale': fontScale,
     }}>
       {/* ── Left Sidebar ── */}
-      <nav className="z-[2000] w-24 md:w-32 bg-slate-900/95 backdrop-blur-md border-r border-white/10 flex flex-col items-center py-6 gap-4 shadow-2xl">
+      <nav id="sidebar-navigation" className="z-[2000] w-24 md:w-32 bg-slate-900/95 backdrop-blur-md border-r border-white/10 flex flex-col items-center py-6 gap-4 shadow-2xl">
         <div className="text-blue-400 text-xl font-black mb-4">信</div>
         
         <button 
-          onClick={() => setActiveTab('usage')}
+          onClick={startTour}
           className={`group relative p-3 rounded-xl transition-all duration-300 text-sm font-semibold ${activeTab === 'usage' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:bg-white/5'}`}
           title="使用方法 (How to Use)"
         >
