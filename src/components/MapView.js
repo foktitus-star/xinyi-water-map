@@ -62,10 +62,7 @@ function buildPolyline(route) {
 
 // ── Route labels for the control panel ─────────────────────
 const ROUTE_LABELS = [
-  { emoji: '🔵', label: '路線一：瑠公圳水泱泱' },
-  { emoji: '🟢', label: '路線二：信義之源 陂水之觀' },
-  { emoji: '🟠', label: '路線三：錫口 五分埔支線' },
-  { emoji: '🟣', label: '路線四：東西神 三大排水系' },
+  { emoji: '🌊', label: '從河到海' },
 ];
 
 // ── FitBounds helper component ─────────────────────────────
@@ -80,6 +77,19 @@ function FitBoundsOnLoad() {
       map.fitBounds(allCoords, { padding: [30, 30] });
     }
   }, [map]);
+  return null;
+}
+
+// ── Zoom/Pan to fit bounds when historical map or overlay is selected ───────────────────
+function FitBoundsOnHistoryChange({ activeId }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!activeId) return;
+    const historyMap = HISTORICAL_MAPS.find((m) => m.id === activeId);
+    if (historyMap && historyMap.type === 'overlay' && historyMap.bounds) {
+      map.fitBounds(historyMap.bounds, { padding: [20, 20], animate: true, duration: 1.5 });
+    }
+  }, [activeId, map]);
   return null;
 }
 
@@ -198,7 +208,7 @@ export default function MapView({ onStartTour }) {
     <div id="map-container-wrapper" className="relative w-full h-full">
       {/* ── Map ─────────────────────────────────────────── */}
       <MapContainer
-        center={[25.033, 121.565]}
+        center={[22.4508, 114.1712]}
         zoom={15}
         className="w-full h-full z-0"
         zoomControl={false}
@@ -210,6 +220,7 @@ export default function MapView({ onStartTour }) {
           className="map-tiles-tinted"
         />
         <FitBoundsOnLoad />
+        <FitBoundsOnHistoryChange activeId={activeHistory} />
         <MapFlyTo center={userPos} />
         <AddMarkerInteraction isAddMode={isAddMarkerMode} onAddMarker={handleAddMarker} />
 

@@ -3,7 +3,7 @@ import { TileLayer, WMSTileLayer } from 'react-leaflet';
 /**
  * Satellite imagery layer
  * Supports both Esri World Imagery and Sentinel-2
- * Limited to Taipei City area for better performance
+ * Limited to Hong Kong area for better performance
  */
 
 // Sentinel Hub Instance ID
@@ -50,7 +50,7 @@ export const SATELLITE_MAPS = [
 /**
  * Renders satellite imagery layer
  * Supports both XYZ tiles (Esri) and WMS (Sentinel-2)
- * Limited to Taipei City area for better performance
+ * Limited to Hong Kong area for better performance
  * @param {{ activeId: string|null, opacity: number }} props
  */
 export default function SatelliteLayer({ activeId, opacity }) {
@@ -62,8 +62,8 @@ export default function SatelliteLayer({ activeId, opacity }) {
   if (!map) return null;
 
   const bounds = [
-    [24.95, 121.45],  // Southwest corner (Taipei area)
-    [25.20, 121.70],  // Northeast corner (Taipei area)
+    [22.15, 113.80],  // Southwest corner (HK area)
+    [22.60, 114.40],  // Northeast corner (HK area)
   ];
 
   // For XYZ tile layers (Esri)
