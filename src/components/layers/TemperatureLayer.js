@@ -53,20 +53,26 @@ export default function TemperatureLayer({ show, url }) {
   );
 }
 
+import InfoTooltip from './info-tooltip/InfoTooltip';
+
 export function TemperatureControl({ show, onChange, loading }) {
   return (
-    <label
-      className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors"
-    >
-      <input
-        type="checkbox"
-        checked={show}
-        onChange={(e) => onChange(e.target.checked)}
-        className="w-5 h-5 rounded accent-[#ef4444] cursor-pointer"
-      />
-      <span className="text-sm leading-tight text-slate-700">
-        🌡️ 地表溫度 (2024夏) {loading && <span className="text-xs text-slate-400">載入中...</span>}
-      </span>
-    </label>
+    <div className="flex items-center justify-between gap-2 hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors w-full">
+      <label
+        className="flex items-center gap-3 cursor-pointer flex-1"
+      >
+        <input
+          type="checkbox"
+          checked={show}
+          onChange={(e) => onChange(e.target.checked)}
+          className="w-5 h-5 rounded accent-[#ef4444] cursor-pointer"
+        />
+        <span className="text-sm leading-tight text-slate-700">
+          🌡️ 地表溫度 (2024夏) {loading && <span className="text-xs text-slate-400">載入中...</span>}
+        </span>
+      </label>
+      <InfoTooltip id="temperature" />
+    </div>
   );
 }
+

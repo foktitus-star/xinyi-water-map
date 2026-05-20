@@ -67,6 +67,8 @@ export default function HistoricalLayer({ activeId, opacity }) {
  * Renders the UI control panel section for historical maps.
  * Intended to be placed in the control panel outside the MapContainer.
  */
+import InfoTooltip from './info-tooltip/InfoTooltip';
+
 export function HistoricalControl({ activeHistory, toggleHistory, historyOpacities, onOpacityChange }) {
   return (
     <div id="tour-historical-control" className="space-y-1 mb-4 pt-3 border-t border-slate-200">
@@ -75,23 +77,25 @@ export function HistoricalControl({ activeHistory, toggleHistory, historyOpaciti
       </p>
       {HISTORICAL_MAPS.map((hm) => (
         <div key={hm.id} className="flex flex-col mb-1">
-          <label
-            className="flex items-center gap-3 cursor-pointer
-                       hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors"
-          >
-            <input
-              type="checkbox"
-              checked={activeHistory === hm.id}
-              onChange={() => toggleHistory(hm.id)}
-              className="w-5 h-5 rounded cursor-pointer"
-              style={{ accentColor: hm.color }}
-            />
-            <span
-              className="w-3 h-3 rounded-sm flex-shrink-0 border border-white/50"
-              style={{ background: hm.color }}
-            />
-            <span className="text-sm leading-tight text-slate-700">{hm.label}</span>
-          </label>
+          <div className="flex items-center justify-between gap-2 hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors w-full">
+            <label
+              className="flex items-center gap-3 cursor-pointer flex-1"
+            >
+              <input
+                type="checkbox"
+                checked={activeHistory === hm.id}
+                onChange={() => toggleHistory(hm.id)}
+                className="w-5 h-5 rounded cursor-pointer"
+                style={{ accentColor: hm.color }}
+              />
+              <span
+                className="w-3 h-3 rounded-sm flex-shrink-0 border border-white/50"
+                style={{ background: hm.color }}
+              />
+              <span className="text-sm leading-tight text-slate-700">{hm.label}</span>
+            </label>
+            <InfoTooltip id={hm.id} />
+          </div>
           
           {/* Opacity Slider - Visible when active or with reduced height when inactive */}
           <div className={`
