@@ -21,7 +21,7 @@ const MapView = dynamic(() => import('@/components/MapView'), {
 });
 
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState('map'); // 'usage', 'map', 'layers', 'form', 'history'
+  const [activeTab, setActiveTab] = useState('map'); // 'usage', 'map', 'layers', 'form', 'history', 'changelog'
   const [fontSize, setFontSize] = useState('medium'); // 'small', 'medium', 'large'
 
   // Calculate font scale multiplier
@@ -186,8 +186,23 @@ export default function HomePage() {
 
         <div className="mt-auto opacity-20 text-[10px] font-mono -rotate-90 whitespace-nowrap tracking-[0.3em] text-white">XINYI_MAP</div>
 
+        {/* Changelog Button */}
+        <div className="w-full px-2 pt-3">
+          <button
+            onClick={() => setActiveTab('changelog')}
+            className={`w-full py-1.5 px-1 rounded-lg text-[10px] font-semibold transition-all duration-200 border ${
+              activeTab === 'changelog'
+                ? 'bg-violet-600/80 text-violet-100 border-violet-400/50 shadow-lg shadow-violet-500/20'
+                : 'bg-white/5 text-white/40 border-white/10 hover:bg-white/10 hover:text-white/70'
+            }`}
+            title="查看版本更新日誌"
+          >
+            📜 更新日誌
+          </button>
+        </div>
+
         {/* Font Size Selector */}
-        <div className="mt-4 pt-4 border-t border-white/10 flex flex-col gap-2 w-full px-2">
+        <div className="pt-3 border-t border-white/10 flex flex-col gap-2 w-full px-2">
           <p className="text-[10px] text-white/50 text-center font-semibold">字體大小</p>
           <div className="flex gap-1 justify-center">
             <button
@@ -512,6 +527,239 @@ export default function HomePage() {
               >
                 探索地圖
               </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Overlay: Changelog ── */}
+        <div
+          className={`absolute inset-0 z-[1000] transition-transform duration-500 ease-in-out ${activeTab === 'changelog' ? 'translate-x-0' : '-translate-x-full'}`}
+          style={{ background: 'linear-gradient(135deg, #0b0b18 0%, #0f0f22 60%, #0a0a1a 100%)' }}
+        >
+          {/* Ambient background glows */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] rounded-full opacity-10" style={{ background: 'radial-gradient(circle, #7c3aed 0%, transparent 70%)' }} />
+            <div className="absolute bottom-[-10%] right-[10%] w-[35%] h-[35%] rounded-full opacity-8" style={{ background: 'radial-gradient(circle, #2563eb 0%, transparent 70%)' }} />
+          </div>
+
+          <div className="relative h-full overflow-y-auto">
+            <div className="max-w-3xl mx-auto px-6 md:px-12 py-10">
+
+              {/* Header */}
+              <div className="flex items-start justify-between mb-10">
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-2xl">📜</span>
+                    <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">更新日誌</h2>
+                  </div>
+                  <p className="text-white/40 text-sm">信水義河互動地圖 · 版本歷史紀錄</p>
+                </div>
+                <button
+                  onClick={() => setActiveTab('map')}
+                  className="mt-1 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white/60 hover:text-white flex items-center justify-center text-lg transition-all duration-200"
+                  title="關閉"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Timeline */}
+              <div className="relative">
+                {/* Vertical line */}
+                <div className="absolute left-[19px] top-0 bottom-0 w-px" style={{ background: 'linear-gradient(to bottom, #7c3aed44, #2563eb44, transparent)' }} />
+
+                <div className="space-y-8">
+
+                  {/* v1.1.2 */}
+                  <div className="relative flex gap-5">
+                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-violet-400/40" style={{ background: 'linear-gradient(135deg, #7c3aed33, #4c1d9533)' }}>
+                      <span className="text-base">🔧</span>
+                    </div>
+                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-violet-400/30 transition-all duration-300" style={{ background: 'rgba(124,58,237,0.07)' }}>
+                      <div className="flex items-center gap-2 flex-wrap mb-3">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#7c3aed33', color: '#c4b5fd' }}>LATEST</span>
+                        <span className="text-white font-bold text-sm">v1.1.2</span>
+                        <span className="text-white/30 text-xs">2026-05-21</span>
+                      </div>
+                      <h3 className="text-white/90 font-semibold text-sm mb-2">圖層工具提示資訊圖示</h3>
+                      <p className="text-white/50 text-xs leading-relaxed">在圖層控制面板中每個圖層的勾選框右側，新增了 ℹ️ 圓形資訊圖示按鈕。點擊後彈出詳細說明彈窗，說明該圖層的來源、時期與用途，讓使用者無需離開地圖即可了解圖層背景。</p>
+                    </div>
+                  </div>
+
+                  {/* v1.1.0 */}
+                  <div className="relative flex gap-5">
+                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-blue-400/40" style={{ background: 'linear-gradient(135deg, #2563eb33, #1e3a8a33)' }}>
+                      <span className="text-base">🗂️</span>
+                    </div>
+                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-blue-400/30 transition-all duration-300" style={{ background: 'rgba(37,99,235,0.07)' }}>
+                      <div className="flex items-center gap-2 flex-wrap mb-3">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#2563eb33', color: '#93c5fd' }}>UI</span>
+                        <span className="text-white font-bold text-sm">v1.1.0</span>
+                        <span className="text-white/30 text-xs">2026-05-21</span>
+                      </div>
+                      <h3 className="text-white/90 font-semibold text-sm mb-2">「資料來源」按鈕位置調整</h3>
+                      <p className="text-white/50 text-xs leading-relaxed">將「資料來源 ℹ️」控制按鈕從地圖上方移至左下角，位於「使用方法」按鈕正上方，解決了按鈕遮擋圖層下拉式選單的問題。同時調整展開動畫原點，確保彈出方向自然。</p>
+                    </div>
+                  </div>
+
+                  {/* v1.0.5 */}
+                  <div className="relative flex gap-5">
+                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-cyan-400/40" style={{ background: 'linear-gradient(135deg, #0891b233, #06407933)' }}>
+                      <span className="text-base">🏠</span>
+                    </div>
+                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-cyan-400/30 transition-all duration-300" style={{ background: 'rgba(8,145,178,0.07)' }}>
+                      <div className="flex items-center gap-2 flex-wrap mb-3">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#0891b233', color: '#67e8f9' }}>UI</span>
+                        <span className="text-white font-bold text-sm">v1.0.5</span>
+                        <span className="text-white/30 text-xs">2026-05-21</span>
+                      </div>
+                      <h3 className="text-white/90 font-semibold text-sm mb-2">側欄標題整合與地圖介面簡化</h3>
+                      <p className="text-white/50 text-xs leading-relaxed">將地圖左下角浮動的「信水義河 信義社大 · 水文導覽互動地圖」標題文字，整合至左側側欄頂部作為品牌識別。地圖底部僅保留「❓ 使用方法」單一按鈕，讓地圖畫面更加簡潔開闊。</p>
+                    </div>
+                  </div>
+
+                  {/* v1.0.0 */}
+                  <div className="relative flex gap-5">
+                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-emerald-400/40" style={{ background: 'linear-gradient(135deg, #05966933, #06402433)' }}>
+                      <span className="text-base">🚀</span>
+                    </div>
+                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-emerald-400/30 transition-all duration-300" style={{ background: 'rgba(5,150,105,0.07)' }}>
+                      <div className="flex items-center gap-2 flex-wrap mb-3">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#05966933', color: '#6ee7b7' }}>MILESTONE</span>
+                        <span className="text-white font-bold text-sm">v1.0.0</span>
+                        <span className="text-white/30 text-xs">2026-04-28</span>
+                      </div>
+                      <h3 className="text-white/90 font-semibold text-sm mb-2">水文回饋表單 B — 節點與自由標記</h3>
+                      <p className="text-white/50 text-xs leading-relaxed">新增自由標記回饋表單（表單 B），使用者可於地圖上任意點擊落點，填寫觀察描述並上傳現場照片。照片自動壓縮為 Base64 後透過 Google Apps Script Proxy 寫入 Google Sheets，並同步上傳至 Google Drive 相簿。</p>
+                    </div>
+                  </div>
+
+                  {/* v0.9.5 */}
+                  <div className="relative flex gap-5">
+                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-emerald-400/30" style={{ background: 'linear-gradient(135deg, #05966922, #06402422)' }}>
+                      <span className="text-base">📋</span>
+                    </div>
+                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-emerald-400/20 transition-all duration-300" style={{ background: 'rgba(5,150,105,0.05)' }}>
+                      <div className="flex items-center gap-2 flex-wrap mb-3">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#05966922', color: '#6ee7b7' }}>FEATURE</span>
+                        <span className="text-white font-bold text-sm">v0.9.5</span>
+                        <span className="text-white/30 text-xs">2026-04-28</span>
+                      </div>
+                      <h3 className="text-white/90 font-semibold text-sm mb-2">水文回饋表單 A — 路線舒適度評分</h3>
+                      <p className="text-white/50 text-xs leading-relaxed">新增路線舒適度評分表單（表單 A），提供星級評分、文字描述欄位，並整合 Google Apps Script 後端，讓使用者回饋自動同步至 Google Sheets 資料庫。</p>
+                    </div>
+                  </div>
+
+                  {/* v0.9.0 */}
+                  <div className="relative flex gap-5">
+                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-amber-400/40" style={{ background: 'linear-gradient(135deg, #d9770633, #92400e33)' }}>
+                      <span className="text-base">🎓</span>
+                    </div>
+                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-amber-400/30 transition-all duration-300" style={{ background: 'rgba(217,119,6,0.07)' }}>
+                      <div className="flex items-center gap-2 flex-wrap mb-3">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#d9770633', color: '#fde68a' }}>UX</span>
+                        <span className="text-white font-bold text-sm">v0.9.0</span>
+                        <span className="text-white/30 text-xs">2026-04-15</span>
+                      </div>
+                      <h3 className="text-white/90 font-semibold text-sm mb-2">Driver.js 互動式新手導覽教學</h3>
+                      <p className="text-white/50 text-xs leading-relaxed">整合 Driver.js 套件，實作逐步式的互動導覽教學流程，共九個步驟。導覽自動展開圖層控制面板，引導使用者認識路線圖層、歷史地圖、衛星影像與定位功能，大幅降低新使用者的學習門檻。</p>
+                    </div>
+                  </div>
+
+                  {/* v0.8.5 */}
+                  <div className="relative flex gap-5">
+                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-slate-400/30" style={{ background: 'rgba(100,116,139,0.15)' }}>
+                      <span className="text-base">🏙️</span>
+                    </div>
+                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-slate-400/20 transition-all duration-300" style={{ background: 'rgba(100,116,139,0.05)' }}>
+                      <div className="flex items-center gap-2 flex-wrap mb-3">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#64748b33', color: '#cbd5e1' }}>FEATURE</span>
+                        <span className="text-white font-bold text-sm">v0.8.5</span>
+                        <span className="text-white/30 text-xs">2026-04-10</span>
+                      </div>
+                      <h3 className="text-white/90 font-semibold text-sm mb-2">都市計畫分區圖層透明度控制</h3>
+                      <p className="text-white/50 text-xs leading-relaxed">為「都市計畫分區」開放資料圖層新增了不透明度調整滑桿（0–100%），讓使用者可自由疊合比對多圖層資訊，與其他圖層的操作體驗統一。</p>
+                    </div>
+                  </div>
+
+                  {/* v0.8.0 */}
+                  <div className="relative flex gap-5">
+                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-slate-400/30" style={{ background: 'rgba(100,116,139,0.15)' }}>
+                      <span className="text-base">🔠</span>
+                    </div>
+                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-slate-400/20 transition-all duration-300" style={{ background: 'rgba(100,116,139,0.05)' }}>
+                      <div className="flex items-center gap-2 flex-wrap mb-3">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#64748b33', color: '#cbd5e1' }}>UI</span>
+                        <span className="text-white font-bold text-sm">v0.8.0</span>
+                        <span className="text-white/30 text-xs">2026-03-20</span>
+                      </div>
+                      <h3 className="text-white/90 font-semibold text-sm mb-2">全域字體大小動態調整</h3>
+                      <p className="text-white/50 text-xs leading-relaxed">於左側側欄底部新增字體大小選擇器（小 / 中 / 大），透過 CSS 自訂變數 <code className="text-violet-300 text-[10px]">--font-scale</code> 動態縮放全頁字體比例，提升在不同裝置與使用情境下的可讀性。</p>
+                    </div>
+                  </div>
+
+                  {/* v0.7.0 */}
+                  <div className="relative flex gap-5">
+                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-slate-400/30" style={{ background: 'rgba(100,116,139,0.15)' }}>
+                      <span className="text-base">🛰️</span>
+                    </div>
+                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-slate-400/20 transition-all duration-300" style={{ background: 'rgba(100,116,139,0.05)' }}>
+                      <div className="flex items-center gap-2 flex-wrap mb-3">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#64748b33', color: '#cbd5e1' }}>DATA</span>
+                        <span className="text-white font-bold text-sm">v0.7.0</span>
+                        <span className="text-white/30 text-xs">2026-03-10</span>
+                      </div>
+                      <h3 className="text-white/90 font-semibold text-sm mb-2">Sentinel-2 多光譜衛星影像整合</h3>
+                      <p className="text-white/50 text-xs leading-relaxed">整合 Sentinel-2 衛星影像，提供三種模式：真彩色影像、植被健康指數（NDVI，紅=稀疏、綠=茂密）與濕度指數（MOISTURE-INDEX，橙=乾燥、藍=濕潤），附帶互動式色彩圖例說明，並可透過透明度滑桿疊合對照。</p>
+                    </div>
+                  </div>
+
+                  {/* v0.6.0 */}
+                  <div className="relative flex gap-5">
+                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-slate-400/30" style={{ background: 'rgba(100,116,139,0.15)' }}>
+                      <span className="text-base">🌡️</span>
+                    </div>
+                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-slate-400/20 transition-all duration-300" style={{ background: 'rgba(100,116,139,0.05)' }}>
+                      <div className="flex items-center gap-2 flex-wrap mb-3">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#64748b33', color: '#cbd5e1' }}>DATA</span>
+                        <span className="text-white font-bold text-sm">v0.6.0</span>
+                        <span className="text-white/30 text-xs">2026-02-28</span>
+                      </div>
+                      <h3 className="text-white/90 font-semibold text-sm mb-2">GEE 地表溫度圖層整合</h3>
+                      <p className="text-white/50 text-xs leading-relaxed">透過 Google Earth Engine（GEE）整合即時地表溫度熱力圖，可視化信義區的都市熱島效應與水體冷卻現象，提供環境教育與研究的重要參考依據。</p>
+                    </div>
+                  </div>
+
+                  {/* v0.5.0 */}
+                  <div className="relative flex gap-5">
+                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-slate-400/30" style={{ background: 'rgba(100,116,139,0.15)' }}>
+                      <span className="text-base">🕰️</span>
+                    </div>
+                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-slate-400/20 transition-all duration-300" style={{ background: 'rgba(100,116,139,0.05)' }}>
+                      <div className="flex items-center gap-2 flex-wrap mb-3">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#64748b33', color: '#cbd5e1' }}>DATA</span>
+                        <span className="text-white font-bold text-sm">v0.5.0</span>
+                        <span className="text-white/30 text-xs">2026-02-10</span>
+                      </div>
+                      <h3 className="text-white/90 font-semibold text-sm mb-2">五層歷史地圖整合（1904–1989）</h3>
+                      <p className="text-white/50 text-xs leading-relaxed">新增五張珍貴歷史地圖圖層：1904 臺灣堡圖、1921 地形圖、1939 瑠公水利區域圖、1944 美軍地形圖、1989 地形圖，每張均附透明度調整滑桿，讓使用者一鍵穿梭時空，直觀觀察百年水道演變。</p>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="mt-12 pt-6 border-t border-white/8 flex items-center justify-between">
+                <p className="text-white/25 text-[11px]">信義社大 水文導覽互動地圖</p>
+                <button
+                  onClick={() => setActiveTab('map')}
+                  className="px-5 py-2 rounded-xl text-sm font-semibold text-white/70 hover:text-white transition-all duration-200 border border-white/10 hover:border-violet-400/40 hover:bg-violet-500/10"
+                >
+                  返回地圖 →
+                </button>
+              </div>
+
             </div>
           </div>
         </div>
