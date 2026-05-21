@@ -110,6 +110,8 @@ export default function SatelliteLayer({ activeId, opacity }) {
 /**
  * Renders the UI control panel section for satellite layers
  */
+import InfoTooltip from './info-tooltip/InfoTooltip';
+
 export function SatelliteControl({ activeSatellite, toggleSatellite, satelliteOpacities, onOpacityChange }) {
   return (
     <div id="tour-satellite-control" className="space-y-1 mb-4 pt-3 border-t border-slate-200">
@@ -118,20 +120,21 @@ export function SatelliteControl({ activeSatellite, toggleSatellite, satelliteOp
       </p>
       {SATELLITE_MAPS.map((sm) => (
         <div key={sm.id} className="flex flex-col mb-1">
-          <label
-            className="flex items-center gap-3 cursor-pointer
-                       hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors"
-            title={sm.description}
-          >
-            <input
-              type="checkbox"
-              checked={activeSatellite === sm.id}
-              onChange={() => toggleSatellite(sm.id)}
-              className="w-5 h-5 rounded cursor-pointer"
-              style={{ accentColor: '#0ea5e9' }}
-            />
-            <span className="text-sm leading-tight text-slate-700">{sm.label}</span>
-          </label>
+          <div className="flex items-center justify-between gap-2 hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors w-full">
+            <label
+              className="flex items-center gap-3 cursor-pointer flex-1"
+            >
+              <input
+                type="checkbox"
+                checked={activeSatellite === sm.id}
+                onChange={() => toggleSatellite(sm.id)}
+                className="w-5 h-5 rounded cursor-pointer"
+                style={{ accentColor: '#0ea5e9' }}
+              />
+              <span className="text-sm leading-tight text-slate-700">{sm.label}</span>
+            </label>
+            <InfoTooltip id={sm.id} />
+          </div>
 
           {/* Opacity Slider */}
           <div className={`
