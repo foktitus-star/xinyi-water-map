@@ -39,7 +39,10 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
-      setIsListening(false);
+      // 延遲更新狀態，避免 DOM 元素立即被 React 卸載導致 Leaflet 誤認點擊在彈出視窗外而將其關閉
+      setTimeout(() => {
+        setIsListening(false);
+      }, 50);
       return;
     }
 
@@ -58,7 +61,10 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
       };
 
       rec.onend = () => {
-        setIsListening(false);
+        // 延遲更新狀態確保 DOM 卸載不會與點擊事件冒泡衝突
+        setTimeout(() => {
+          setIsListening(false);
+        }, 50);
       };
 
       rec.onerror = (e) => {
@@ -260,7 +266,7 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
 
         {/* Description */}
         <div>
-          <div className="flex justify-between items-center mb-1.5">
+          <div className="flex justify-between items-center mb-1.5" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-1.5">
               <label className="block text-sm font-bold text-slate-700">您的記憶與故事</label>
               {aiSummary && (
@@ -275,7 +281,7 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
               {isVoiceSupported && (
                 <button
                   type="button"
-                  onClick={handleToggleListen}
+                  onClick={(e) => { e.stopPropagation(); handleToggleListen(); }}
                   className={`
                     flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shadow-sm transition-all cursor-pointer
                     ${isListening 
@@ -293,7 +299,7 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
               {description.trim() && (
                 <button
                   type="button"
-                  onClick={handleAISummarize}
+                  onClick={(e) => { e.stopPropagation(); handleAISummarize(); }}
                   disabled={isSummarizing}
                   className="flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 text-white rounded-full text-[10px] font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
                   title="使用 Gemini AI 潤飾並整理故事"
@@ -305,7 +311,7 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
             </div>
           </div>
 
-          <div className="relative">
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -315,7 +321,10 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
 
             {/* Pulsing glowing microphone recording overlay */}
             {isListening && (
-              <div className="absolute inset-0 bg-blue-50/90 backdrop-blur-xs rounded-lg flex flex-col items-center justify-center border border-blue-200 z-10 animate-fade-in">
+              <div 
+                className="absolute inset-0 bg-blue-50/90 backdrop-blur-xs rounded-lg flex flex-col items-center justify-center border border-blue-200 z-10 animate-fade-in"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div className="relative mb-2">
                   <div className="absolute inset-0 bg-red-400 rounded-full animate-ping opacity-70"></div>
                   <div className="relative bg-red-500 text-white rounded-full p-3.5 shadow-md flex items-center justify-center">
@@ -327,7 +336,7 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
                 <p className="text-blue-900 font-bold text-xs animate-pulse">語音聆聽中...請對麥克風說話</p>
                 <button 
                   type="button"
-                  onClick={handleToggleListen}
+                  onClick={(e) => { e.stopPropagation(); handleToggleListen(); }}
                   className="mt-2.5 px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 font-bold text-[10px] rounded-full border border-red-200 transition-colors shadow-xs cursor-pointer"
                 >
                   說完了，點擊停止 ⏹️
@@ -338,14 +347,24 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
 
           {/* AI Polished Preview Card */}
           {showSummaryCard && (
-            <div className="bg-gradient-to-r from-violet-50/95 to-indigo-50/95 border border-indigo-200 rounded-lg p-3 mt-2 shadow-inner transition-all z-10 relative overflow-hidden animate-fade-in">
+            <div 
+              className="bg-gradient-to-r from-violet-50/95 to-indigo-50/95 border border-indigo-200 rounded-lg p-3 mt-2 shadow-inner transition-all z-10 relative overflow-hidden animate-fade-in"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="flex justify-between items-center mb-1.5">
                 <span className="text-[11px] font-extrabold text-indigo-900 flex items-center gap-1 animate-pulse">
                   ✨ Gemini AI 智慧地景故事潤飾
                 </span>
                 <button 
                   type="button"
-                  onClick={() => { setShowSummaryCard(false); setAiSummary(''); }}
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    // 延遲更新狀態避免 DOM 卸載導致 Leaflet 關閉彈出視窗
+                    setTimeout(() => {
+                      setShowSummaryCard(false); 
+                      setAiSummary(''); 
+                    }, 50);
+                  }}
                   className="text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
                 >
                   ✕
@@ -372,9 +391,13 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
                   <div className="flex gap-2 mt-2">
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setDescription(aiSummary);
-                        setShowSummaryCard(false);
+                        // 延遲更新狀態避免 DOM 卸載導致 Leaflet 關閉彈出視窗
+                        setTimeout(() => {
+                          setShowSummaryCard(false);
+                        }, 50);
                       }}
                       className="flex-1 bg-white hover:bg-slate-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold py-1 rounded transition-colors shadow-2xs cursor-pointer"
                     >
@@ -382,8 +405,12 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        setShowSummaryCard(false);
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // 延遲更新狀態避免 DOM 卸載導致 Leaflet 關閉彈出視窗
+                        setTimeout(() => {
+                          setShowSummaryCard(false);
+                        }, 50);
                       }}
                       className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white text-[10px] font-bold py-1 rounded transition-colors shadow-xs cursor-pointer"
                     >
@@ -396,6 +423,7 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
           )}
         </div>
 
+
         {/* Photo Upload */}
         <div>
           <label className="block text-sm font-bold text-slate-700 mb-1">上傳照片</label>
@@ -407,7 +435,14 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
               <div className="relative">
                 <img src={photoBase64} alt="Preview" className="max-h-32 mx-auto rounded" />
                 <button 
-                  onClick={(e) => { e.stopPropagation(); setPhotoBase64(null); setPhotoFilename(''); }}
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    // 延遲更新狀態避免 DOM 卸載導致 Leaflet 關閉彈出視窗
+                    setTimeout(() => {
+                      setPhotoBase64(null); 
+                      setPhotoFilename(''); 
+                    }, 50);
+                  }}
                   className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs shadow-md"
                 >
                   ✕

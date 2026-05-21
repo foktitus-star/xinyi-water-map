@@ -570,6 +570,22 @@ export default function HomePage() {
 
                 <div className="space-y-8">
 
+                  {/* v1.3.1 */}
+                  <div className="relative flex gap-5">
+                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-amber-400/40" style={{ background: 'linear-gradient(135deg, #d9770633, #78350f33)' }}>
+                      <span className="text-base">🐛</span>
+                    </div>
+                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-amber-400/30 transition-all duration-300" style={{ background: 'rgba(217,119,6,0.07)' }}>
+                      <div className="flex items-center gap-2 flex-wrap mb-3">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#d9770633', color: '#fde68a' }}>LATEST</span>
+                        <span className="text-white font-bold text-sm">v1.3.1</span>
+                        <span className="text-white/30 text-xs">2026-05-22</span>
+                      </div>
+                      <h3 className="text-white/90 font-semibold text-sm mb-2">語音與 AI 卡片防誤關機制 (Bug Fix)</h3>
+                      <p className="text-white/50 text-xs leading-relaxed">修復了點擊「說完了」、「套用 AI」、「保留故事」或「刪除相片」時，由於對應 React 節點被即時卸載，導致 Leaflet 地圖誤判為「點擊彈出視窗外部」進而自動關閉視窗的 Bug。透過加入無感延遲更新（50ms），完美保證冒泡事件順暢完成，使用者回饋資料不再遺失且順暢送出！</p>
+                    </div>
+                  </div>
+
                   {/* v1.3.0 */}
                   <div className="relative flex gap-5">
                     <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-violet-400/40" style={{ background: 'linear-gradient(135deg, #7c3aed33, #4c1d9533)' }}>
@@ -577,7 +593,7 @@ export default function HomePage() {
                     </div>
                     <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-violet-400/30 transition-all duration-300" style={{ background: 'rgba(124,58,237,0.07)' }}>
                       <div className="flex items-center gap-2 flex-wrap mb-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#7c3aed33', color: '#c4b5fd' }}>LATEST</span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#7c3aed33', color: '#c4b5fd' }}>FEATURE</span>
                         <span className="text-white font-bold text-sm">v1.3.0</span>
                         <span className="text-white/30 text-xs">2026-05-22</span>
                       </div>
