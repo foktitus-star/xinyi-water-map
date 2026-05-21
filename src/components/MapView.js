@@ -131,6 +131,7 @@ export default function MapView({ onStartTour }) {
 
   // Temperature Layer State
   const { showTemperature, setShowTemperature, temperatureUrl, temperatureLoading } = useTemperatureLayer();
+  const [temperatureOpacity, setTemperatureOpacity] = useState(0.65);
 
   const toggleHistory = (id) =>
     setActiveHistory((prev) => (prev === id ? null : id));
@@ -229,7 +230,7 @@ export default function MapView({ onStartTour }) {
         {/* ── Modular Layers ── */}
         <ZoningLayer showZoning={showZoning} opacity={zoningOpacity} />
         <ComfortLayer showTrees={showTrees} showSidewalks={showSidewalks} />
-        <TemperatureLayer show={showTemperature} url={temperatureUrl} />
+        <TemperatureLayer show={showTemperature} url={temperatureUrl} opacity={temperatureOpacity} />
 
         {routes.map((route, ri) =>
           visibility[ri] ? (
@@ -420,7 +421,13 @@ export default function MapView({ onStartTour }) {
                   </div>
                 </div>
 
-                <TemperatureControl show={showTemperature} onChange={setShowTemperature} loading={temperatureLoading} />
+                <TemperatureControl
+                  show={showTemperature}
+                  onChange={setShowTemperature}
+                  loading={temperatureLoading}
+                  opacity={temperatureOpacity}
+                  onOpacityChange={setTemperatureOpacity}
+                />
               </div>
             </div>
 
