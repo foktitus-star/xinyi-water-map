@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useMap } from 'react-leaflet';
 
 const TAGS = ['歷史', '水源', '生態', '氣味', '地景', '其他'];
@@ -12,6 +12,118 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const fileInputRef = useRef(null);
+
+  // 語音與 AI 相關狀態
+  const [isListening, setIsListening] = useState(false);
+  const [isVoiceSupported, setIsVoiceSupported] = useState(false);
+  const [isVoiceUsed, setIsVoiceUsed] = useState(false);
+  const [aiSummary, setAiSummary] = useState('');
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const [showSummaryCard, setShowSummaryCard] = useState(false);
+  const [summarizeError, setSummarizeError] = useState('');
+  const recognitionRef = useRef(null);
+
+  // 偵測瀏覽器語音支援度
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        setIsVoiceSupported(true);
+      }
+    }
+  }, []);
+
+  // 啟動/停止語音辨識
+  const handleToggleListen = () => {
+    if (isListening) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    try {
+      const rec = new SpeechRecognition();
+      rec.continuous = true;
+      rec.interimResults = false; // 僅取最終結果，避免頻繁觸發 React 狀態更新造成輸入框卡頓
+      rec.lang = 'zh-TW';
+
+      rec.onstart = () => {
+        setIsListening(true);
+        setIsVoiceUsed(true);
+      };
+
+      rec.onend = () => {
+        setIsListening(false);
+      };
+
+      rec.onerror = (e) => {
+        console.error('Speech recognition error:', e.error);
+        setIsListening(false);
+        if (e.error === 'not-allowed') {
+          alert('請允許麥克風權限以進行語音輸入。');
+        }
+      };
+
+      rec.onresult = (e) => {
+        let finalTranscript = '';
+        for (let i = e.resultIndex; i < e.results.length; ++i) {
+          if (e.results[i].isFinal) {
+            finalTranscript += e.results[i][0].transcript;
+          }
+        }
+        
+        if (finalTranscript) {
+          setDescription(prev => {
+            const trimmed = prev.trim();
+            return trimmed ? `${trimmed} ${finalTranscript}` : finalTranscript;
+          });
+        }
+      };
+
+      recognitionRef.current = rec;
+      rec.start();
+    } catch (err) {
+      console.error('Failed to start speech recognition:', err);
+      setIsListening(false);
+    }
+  };
+
+  // 呼叫 Gemini AI 整理摘要
+  const handleAISummarize = async () => {
+    if (!description.trim()) {
+      alert('請先輸入或用語音說一段話，再進行 AI 整理。');
+      return;
+    }
+
+    setIsSummarizing(true);
+    setSummarizeError('');
+    setShowSummaryCard(true);
+
+    try {
+      const response = await fetch('/api/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: description })
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'AI 整理服務暫時發生錯誤');
+      }
+
+      setAiSummary(resData.summary);
+    } catch (err) {
+      console.error('Summarize error:', err);
+      setSummarizeError(err.message);
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
 
   const handleToggleTag = (tag) => {
     if (selectedTags.includes(tag)) {
@@ -80,7 +192,9 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
       description: description.trim(),
       tags: selectedTags,
       photo_base64: photoBase64,
-      photo_filename: photoFilename
+      photo_filename: photoFilename,
+      ai_summary: aiSummary.trim(),
+      is_voice: isVoiceUsed
     };
 
     try {
@@ -146,13 +260,140 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-1">您的記憶與故事</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="這裡有什麼特別的回憶嗎？"
-            className="w-full p-2 border border-slate-200 rounded-lg text-sm min-h-[80px] focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-          />
+          <div className="flex justify-between items-center mb-1.5">
+            <div className="flex items-center gap-1.5">
+              <label className="block text-sm font-bold text-slate-700">您的記憶與故事</label>
+              {aiSummary && (
+                <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold flex items-center gap-0.5 animate-bounce">
+                  ✨ AI 已潤飾
+                </span>
+              )}
+            </div>
+            
+            <div className="flex gap-2">
+              {/* Web Speech API Microphone Button */}
+              {isVoiceSupported && (
+                <button
+                  type="button"
+                  onClick={handleToggleListen}
+                  className={`
+                    flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shadow-sm transition-all cursor-pointer
+                    ${isListening 
+                      ? 'bg-red-500 text-white animate-pulse' 
+                      : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'}
+                  `}
+                  title="用語音說故事"
+                >
+                  <span className="text-[10px]">🎙️</span>
+                  <span>{isListening ? '聆聽中...' : '語音輸入'}</span>
+                </button>
+              )}
+
+              {/* AI Summarize Button (only show if description has content) */}
+              {description.trim() && (
+                <button
+                  type="button"
+                  onClick={handleAISummarize}
+                  disabled={isSummarizing}
+                  className="flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 text-white rounded-full text-[10px] font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+                  title="使用 Gemini AI 潤飾並整理故事"
+                >
+                  <span>✨</span>
+                  <span>AI 潤飾</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="relative">
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={isVoiceSupported ? "這裡有什麼特別的回憶嗎？（可點擊上方「語音輸入」用語音說故事喔！）" : "這裡有什麼特別的回憶嗎？"}
+              className="w-full p-2 border border-slate-200 rounded-lg text-sm min-h-[85px] focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+            />
+
+            {/* Pulsing glowing microphone recording overlay */}
+            {isListening && (
+              <div className="absolute inset-0 bg-blue-50/90 backdrop-blur-xs rounded-lg flex flex-col items-center justify-center border border-blue-200 z-10 animate-fade-in">
+                <div className="relative mb-2">
+                  <div className="absolute inset-0 bg-red-400 rounded-full animate-ping opacity-70"></div>
+                  <div className="relative bg-red-500 text-white rounded-full p-3.5 shadow-md flex items-center justify-center">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 005 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd"/>
+                    </svg>
+                  </div>
+                </div>
+                <p className="text-blue-900 font-bold text-xs animate-pulse">語音聆聽中...請對麥克風說話</p>
+                <button 
+                  type="button"
+                  onClick={handleToggleListen}
+                  className="mt-2.5 px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 font-bold text-[10px] rounded-full border border-red-200 transition-colors shadow-xs cursor-pointer"
+                >
+                  說完了，點擊停止 ⏹️
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* AI Polished Preview Card */}
+          {showSummaryCard && (
+            <div className="bg-gradient-to-r from-violet-50/95 to-indigo-50/95 border border-indigo-200 rounded-lg p-3 mt-2 shadow-inner transition-all z-10 relative overflow-hidden animate-fade-in">
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-[11px] font-extrabold text-indigo-900 flex items-center gap-1 animate-pulse">
+                  ✨ Gemini AI 智慧地景故事潤飾
+                </span>
+                <button 
+                  type="button"
+                  onClick={() => { setShowSummaryCard(false); setAiSummary(''); }}
+                  className="text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {isSummarizing ? (
+                <div className="space-y-1.5 py-1">
+                  <div className="h-3 bg-indigo-200 rounded-full w-full animate-pulse"></div>
+                  <div className="h-3 bg-indigo-200 rounded-full w-11/12 animate-pulse"></div>
+                  <div className="h-3 bg-indigo-200 rounded-full w-4/5 animate-pulse"></div>
+                  <div className="text-[10px] text-indigo-500 animate-pulse text-center mt-1">AI 正在斟酌字句中...</div>
+                </div>
+              ) : summarizeError ? (
+                <div className="text-[11px] text-red-600 font-bold py-1">
+                  ⚠️ {summarizeError}
+                </div>
+              ) : (
+                <>
+                  <p className="text-xs text-slate-700 leading-relaxed bg-white/80 p-2.5 rounded border border-indigo-100 shadow-2xs max-h-[120px] overflow-y-auto font-normal">
+                    {aiSummary}
+                  </p>
+                  
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDescription(aiSummary);
+                        setShowSummaryCard(false);
+                      }}
+                      className="flex-1 bg-white hover:bg-slate-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold py-1 rounded transition-colors shadow-2xs cursor-pointer"
+                    >
+                      套用 (覆蓋原文)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowSummaryCard(false);
+                      }}
+                      className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white text-[10px] font-bold py-1 rounded transition-colors shadow-xs cursor-pointer"
+                    >
+                      保留，與原文一同送出
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Photo Upload */}

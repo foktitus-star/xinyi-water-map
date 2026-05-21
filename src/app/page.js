@@ -570,14 +570,46 @@ export default function HomePage() {
 
                 <div className="space-y-8">
 
-                  {/* v1.1.2 */}
+                  {/* v1.3.0 */}
                   <div className="relative flex gap-5">
                     <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-violet-400/40" style={{ background: 'linear-gradient(135deg, #7c3aed33, #4c1d9533)' }}>
-                      <span className="text-base">🔧</span>
+                      <span className="text-base">🎙️</span>
                     </div>
                     <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-violet-400/30 transition-all duration-300" style={{ background: 'rgba(124,58,237,0.07)' }}>
                       <div className="flex items-center gap-2 flex-wrap mb-3">
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#7c3aed33', color: '#c4b5fd' }}>LATEST</span>
+                        <span className="text-white font-bold text-sm">v1.3.0</span>
+                        <span className="text-white/30 text-xs">2026-05-22</span>
+                      </div>
+                      <h3 className="text-white/90 font-semibold text-sm mb-2">智慧地景回饋：語音輸入與 AI 故事潤飾</h3>
+                      <p className="text-white/50 text-xs leading-relaxed">自由標記回饋表單（表單 B）迎來智慧化升級！新增「語音輸入 🎙️」按鈕，走讀時只需動口即可輕鬆將語音轉為文字。更整合了 Google Gemini AI「AI 潤飾 ✨」功能，一鍵將口語零碎的回憶整理成流暢溫暖的地景故事。支援將原始輸入與 AI 潤飾摘要雙軌同步儲存至 Google Sheets 後台。</p>
+                    </div>
+                  </div>
+
+                  {/* v1.2.0 */}
+                  <div className="relative flex gap-5">
+                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-blue-400/40" style={{ background: 'linear-gradient(135deg, #2563eb33, #1e3a8a33)' }}>
+                      <span className="text-base">🌡️</span>
+                    </div>
+                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-blue-400/30 transition-all duration-300" style={{ background: 'rgba(37,99,235,0.07)' }}>
+                      <div className="flex items-center gap-2 flex-wrap mb-3">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#2563eb22', color: '#93c5fd' }}>FEATURE</span>
+                        <span className="text-white font-bold text-sm">v1.2.0</span>
+                        <span className="text-white/30 text-xs">2026-05-21</span>
+                      </div>
+                      <h3 className="text-white/90 font-semibold text-sm mb-2">地表溫度圖層 (Landsat 8) 新增透明度滑桿</h3>
+                      <p className="text-white/50 text-xs leading-relaxed">在衛星地表溫度圖層控制中新增了平滑的透明度拉桿。使用者可以自由調節 Landsat 8 熱島效應分布圖的覆蓋透明度（從 0% 至 100%），方便比對地表實際地貌與熱量分布，提升水文與都市熱島的綜合研究體驗。</p>
+                    </div>
+                  </div>
+
+                  {/* v1.1.2 */}
+                  <div className="relative flex gap-5">
+                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-violet-400/30" style={{ background: 'linear-gradient(135deg, #7c3aed22, #4c1d9522)' }}>
+                      <span className="text-base">🔧</span>
+                    </div>
+                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-violet-400/20 transition-all duration-300" style={{ background: 'rgba(124,58,237,0.05)' }}>
+                      <div className="flex items-center gap-2 flex-wrap mb-3">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#7c3aed22', color: '#c4b5fd' }}>UPDATE</span>
                         <span className="text-white font-bold text-sm">v1.1.2</span>
                         <span className="text-white/30 text-xs">2026-05-21</span>
                       </div>
@@ -585,6 +617,7 @@ export default function HomePage() {
                       <p className="text-white/50 text-xs leading-relaxed">在圖層控制面板中每個圖層的勾選框右側，新增了 ℹ️ 圓形資訊圖示按鈕。點擊後彈出詳細說明彈窗，說明該圖層的來源、時期與用途，讓使用者無需離開地圖即可了解圖層背景。</p>
                     </div>
                   </div>
+
 
                   {/* v1.1.0 */}
                   <div className="relative flex gap-5">
