@@ -119,7 +119,19 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
 
       const resData = await response.json();
       if (!response.ok) {
-        throw new Error(resData.error || 'AI 整理服務暫時發生錯誤');
+        let detailsMsg = '';
+        if (resData.details) {
+          try {
+            const parsed = JSON.parse(resData.details);
+            detailsMsg = parsed.error?.message || resData.details;
+          } catch (e) {
+            detailsMsg = resData.details;
+          }
+        }
+        const errorMsg = detailsMsg 
+          ? `${resData.error} (詳細原因：${detailsMsg})` 
+          : (resData.error || 'AI 整理服務暫時發生錯誤');
+        throw new Error(errorMsg);
       }
 
       setAiSummary(resData.summary);
