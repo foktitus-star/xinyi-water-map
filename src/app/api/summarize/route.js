@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+export const preferredRegion = 'hnd1';
+
 export async function POST(request) {
   try {
     const { text } = await request.json();
