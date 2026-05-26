@@ -48,10 +48,16 @@ export default function HomePage() {
           const headerLine = lines[0].trim();
           
           // 解析標題格式：[Version] - Date - Emoji - Tag - Title
-          const match = headerLine.match(/^\[([^\]]+)\]\s*-\s*([^\s-]+)\s*-\s*(\S+)\s*-\s*(\S+)\s*-\s*(.*)$/);
+          // 例如：[v1.5.0] - 2026-05-27 - 📸 - LATEST - AI 圖片轉譯...
+          const parts = headerLine.split(/\s+-\s+/);
           
-          if (match) {
-            const [_, version, date, emoji, tag, title] = match;
+          if (parts.length >= 5) {
+            const version = parts[0].replace(/[\[\]]/g, '');
+            const date = parts[1];
+            const emoji = parts[2];
+            const tag = parts[3];
+            const title = parts.slice(4).join(' - ');
+            
             const descLines = [];
             for (let j = 1; j < lines.length; j++) {
               const line = lines[j].trim();
