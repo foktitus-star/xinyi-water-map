@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import exifr from 'exifr';
 import { useMap } from 'react-leaflet';
 
 const TAGS = ['歷史', '水源', '生態', '氣味', '地景', '其他'];
@@ -12,6 +13,13 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const fileInputRef = useRef(null);
+
+  // EXIF 照片資訊狀態
+  const [photoExif, setPhotoExif] = useState(null);
+
+  // AI 圖片轉譯狀態
+  const [isDescribingImage, setIsDescribingImage] = useState(false);
+  const [imageDescribeError, setImageDescribeError] = useState('');
 
   // 語音與 AI 相關狀態
   const [isListening, setIsListening] = useState(false);
@@ -151,12 +159,49 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
     }
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     setPhotoFilename(file.name);
+    setPhotoExif(null);
+    setImageDescribeError('');
 
+    // 從原始檔案提取 EXIF 資訊（在壓縮前讀取，因為壓縮會移除 EXIF）
+    try {
+      const exifData = await exifr.parse(file, {
+        pick: ['DateTimeOriginal', 'CreateDate', 'GPSLatitude', 'GPSLongitude', 'latitude', 'longitude', 'Make', 'Model'],
+        gps: true,
+      });
+      if (exifData) {
+        const exifResult = {};
+        // GPS 座標（exifr 自動轉換為十進位格式）
+        if (exifData.latitude && exifData.longitude) {
+          exifResult.latitude = Math.round(exifData.latitude * 1000000) / 1000000;
+          exifResult.longitude = Math.round(exifData.longitude * 1000000) / 1000000;
+        }
+        // 拍攝時間
+        const dateField = exifData.DateTimeOriginal || exifData.CreateDate;
+        if (dateField) {
+          exifResult.dateTime = dateField instanceof Date 
+            ? dateField.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
+            : String(dateField);
+        }
+        // 設備資訊
+        if (exifData.Make || exifData.Model) {
+          exifResult.device = [exifData.Make, exifData.Model].filter(Boolean).join(' ');
+        }
+        // 只有在有任何資訊時才設定
+        if (Object.keys(exifResult).length > 0) {
+          setPhotoExif(exifResult);
+        }
+      }
+    } catch (exifErr) {
+      // EXIF 讀取失敗時靜默處理，不影響照片上傳
+      console.warn('EXIF extraction failed (non-critical):', exifErr.message);
+    }
+
+    // 壓縮圖片並轉為 Base64
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
@@ -193,6 +238,60 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
     reader.readAsDataURL(file);
   };
 
+  // AI 圖片轉譯：將照片送至 Gemini 多模態 API 進行文字辨識與場景描述
+  const handleDescribeImage = async () => {
+    if (!photoBase64) {
+      alert('請先上傳一張照片。');
+      return;
+    }
+
+    setIsDescribingImage(true);
+    setImageDescribeError('');
+
+    try {
+      const response = await fetch('/api/describe-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          imageBase64: photoBase64,
+          mimeType: 'image/jpeg'
+        })
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        let detailsMsg = '';
+        if (resData.details) {
+          try {
+            const parsed = JSON.parse(resData.details);
+            detailsMsg = parsed.error?.message || resData.details;
+          } catch (e) {
+            detailsMsg = resData.details;
+          }
+        }
+        const errorMsg = detailsMsg 
+          ? `${resData.error} (${detailsMsg})` 
+          : (resData.error || 'AI 圖片轉譯服務暫時發生錯誤');
+        throw new Error(errorMsg);
+      }
+
+      // 將 AI 描述插入文字框（追加，不覆蓋）
+      if (resData.description) {
+        setDescription(prev => {
+          const trimmed = prev.trim();
+          return trimmed 
+            ? `${trimmed}\n\n📷 AI 圖片描述：${resData.description}` 
+            : resData.description;
+        });
+      }
+    } catch (err) {
+      console.error('Describe image error:', err);
+      setImageDescribeError(err.message);
+    } finally {
+      setIsDescribingImage(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!description.trim() && selectedTags.length === 0 && !photoBase64) {
       alert('請至少填寫文字、選擇標籤或上傳照片');
@@ -212,7 +311,8 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
       photo_base64: photoBase64,
       photo_filename: photoFilename,
       ai_summary: aiSummary.trim(),
-      is_voice: isVoiceUsed
+      is_voice: isVoiceUsed,
+      photo_exif: photoExif || null
     };
 
     try {
@@ -453,6 +553,8 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
                     setTimeout(() => {
                       setPhotoBase64(null); 
                       setPhotoFilename(''); 
+                      setPhotoExif(null);
+                      setImageDescribeError('');
                     }, 50);
                   }}
                   className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs shadow-md"
@@ -474,6 +576,57 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
               onChange={handleFileChange}
             />
           </div>
+
+          {/* EXIF 照片資訊顯示 */}
+          {photoExif && (
+            <div className="mt-2 flex flex-wrap gap-1.5 animate-fade-in" onClick={(e) => e.stopPropagation()}>
+              {photoExif.latitude && photoExif.longitude && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-medium">
+                  📍 {photoExif.latitude}°N, {photoExif.longitude}°E
+                </span>
+              )}
+              {photoExif.dateTime && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-[10px] font-medium">
+                  ⏰ {photoExif.dateTime}
+                </span>
+              )}
+              {photoExif.device && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-[10px] font-medium">
+                  📱 {photoExif.device}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* AI 圖片轉譯按鈕 */}
+          {photoBase64 && (
+            <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); handleDescribeImage(); }}
+                disabled={isDescribingImage}
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white rounded-lg text-xs font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+                title="使用 Gemini AI 分析照片中的文字與場景"
+              >
+                {isDescribingImage ? (
+                  <>
+                    <span className="animate-spin">⏳</span>
+                    <span>AI 正在分析圖片中...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>📝</span>
+                    <span>AI 圖片轉譯</span>
+                  </>
+                )}
+              </button>
+              {imageDescribeError && (
+                <div className="text-[10px] text-red-600 font-bold mt-1 px-1">
+                  ⚠️ {imageDescribeError}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
       
