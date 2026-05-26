@@ -577,27 +577,6 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
             />
           </div>
 
-          {/* EXIF 照片資訊顯示 */}
-          {photoExif && (
-            <div className="mt-2 flex flex-wrap gap-1.5 animate-fade-in" onClick={(e) => e.stopPropagation()}>
-              {photoExif.latitude && photoExif.longitude && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-medium">
-                  📍 {photoExif.latitude}°N, {photoExif.longitude}°E
-                </span>
-              )}
-              {photoExif.dateTime && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-[10px] font-medium">
-                  ⏰ {photoExif.dateTime}
-                </span>
-              )}
-              {photoExif.device && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-[10px] font-medium">
-                  📱 {photoExif.device}
-                </span>
-              )}
-            </div>
-          )}
-
           {/* AI 圖片轉譯按鈕 */}
           {photoBase64 && (
             <div className="mt-2" onClick={(e) => e.stopPropagation()}>

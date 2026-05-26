@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
@@ -24,6 +24,116 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState('map'); // 'usage', 'map', 'layers', 'form', 'history', 'changelog'
   const [fontSize, setFontSize] = useState('medium'); // 'small', 'medium', 'large'
   const [showLanding, setShowLanding] = useState(true);
+
+  // 動態更新日誌狀態
+  const [changelog, setChangelog] = useState([]);
+  const [loadingChangelog, setLoadingChangelog] = useState(false);
+
+  useEffect(() => {
+    async function loadChangelog() {
+      setLoadingChangelog(true);
+      try {
+        const response = await fetch('/CHANGELOG.md');
+        if (!response.ok) throw new Error('Failed to load changelog');
+        const text = await response.text();
+        
+        // 輕量化 Markdown 更新日誌解析器
+        const sections = text.split(/##\s+\[/);
+        const entries = [];
+        
+        for (let i = 1; i < sections.length; i++) {
+          const section = sections[i];
+          const content = '[' + section;
+          const lines = content.split('\n');
+          const headerLine = lines[0].trim();
+          
+          // 解析標題格式：[Version] - Date - Emoji - Tag - Title
+          const match = headerLine.match(/^\[([^\]]+)\]\s*-\s*([^\s-]+)\s*-\s*(\S+)\s*-\s*(\S+)\s*-\s*(.*)$/);
+          
+          if (match) {
+            const [_, version, date, emoji, tag, title] = match;
+            const descLines = [];
+            for (let j = 1; j < lines.length; j++) {
+              const line = lines[j].trim();
+              if (line) {
+                // 去除列表符號 (1. , -, *)
+                const cleanedLine = line.replace(/^(?:\d+\.|\-|\*)\s+/, '');
+                descLines.push(cleanedLine);
+              }
+            }
+            entries.push({ version, date, emoji, tag, title, descriptions: descLines });
+          }
+        }
+        setChangelog(entries);
+      } catch (err) {
+        console.error('Error fetching changelog:', err);
+      } finally {
+        setLoadingChangelog(false);
+      }
+    }
+    loadChangelog();
+  }, []);
+
+  const getTagStyles = (tag) => {
+    switch (tag.toUpperCase()) {
+      case 'LATEST':
+        return {
+          badgeBg: 'bg-[#0d948833] text-[#99f6e4]',
+          borderHover: 'hover:border-teal-400/30',
+          dotBorder: 'border-teal-400/40',
+          bgGradient: 'linear-gradient(135deg, #0d948833, #115e5933)',
+          cardBg: 'rgba(13,148,136,0.07)'
+        };
+      case 'AESTHETICS':
+        return {
+          badgeBg: 'bg-[#d9770622] text-[#fde68a]',
+          borderHover: 'hover:border-amber-400/30',
+          dotBorder: 'border-amber-400/40',
+          bgGradient: 'linear-gradient(135deg, #d9770633, #78350f33)',
+          cardBg: 'rgba(217,119,6,0.07)'
+        };
+      case 'UPDATE':
+        return {
+          badgeBg: 'bg-[#7c3aed11] text-[#c4b5fd]',
+          borderHover: 'hover:border-violet-400/20',
+          dotBorder: 'border-violet-400/30',
+          bgGradient: 'linear-gradient(135deg, #7c3aed22, #4c1d9522)',
+          cardBg: 'rgba(124,58,237,0.05)'
+        };
+      case 'FEATURE':
+        return {
+          badgeBg: 'bg-[#2563eb22] text-[#93c5fd]',
+          borderHover: 'hover:border-blue-400/30',
+          dotBorder: 'border-blue-400/40',
+          bgGradient: 'linear-gradient(135deg, #2563eb33, #1e3a8a33)',
+          cardBg: 'rgba(37,99,235,0.07)'
+        };
+      case 'UI':
+        return {
+          badgeBg: 'bg-[#0891b233] text-[#67e8f9]',
+          borderHover: 'hover:border-cyan-400/30',
+          dotBorder: 'border-cyan-400/40',
+          bgGradient: 'linear-gradient(135deg, #0891b233, #06407933)',
+          cardBg: 'rgba(8,145,178,0.07)'
+        };
+      case 'MILESTONE':
+        return {
+          badgeBg: 'bg-[#05966933] text-[#6ee7b7]',
+          borderHover: 'hover:border-emerald-400/30',
+          dotBorder: 'border-emerald-400/40',
+          bgGradient: 'linear-gradient(135deg, #05966933, #06402433)',
+          cardBg: 'rgba(5,150,105,0.07)'
+        };
+      default:
+        return {
+          badgeBg: 'bg-[#64748b33] text-[#cbd5e1]',
+          borderHover: 'hover:border-slate-400/20',
+          dotBorder: 'border-slate-400/30',
+          bgGradient: 'rgba(100,116,139,0.15)',
+          cardBg: 'rgba(100,116,139,0.05)'
+        };
+    }
+  };
 
   // Calculate font scale multiplier
   const fontScale = fontSize === 'small' ? 0.875 : fontSize === 'large' ? 1.125 : 1;
@@ -594,223 +704,54 @@ export default function HomePage() {
                 <div className="absolute left-[19px] top-0 bottom-0 w-px" style={{ background: 'linear-gradient(to bottom, #7c3aed44, #2563eb44, transparent)' }} />
 
                 <div className="space-y-8">
-
-                  {/* v1.3.0 */}
-                  <div className="relative flex gap-5">
-                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-violet-400/40" style={{ background: 'linear-gradient(135deg, #7c3aed33, #4c1d9533)' }}>
-                      <span className="text-base">🎙️</span>
+                  {loadingChangelog ? (
+                    <div className="text-center py-12">
+                      <div className="inline-block w-8 h-8 border-3 border-white/20 border-t-teal-400 rounded-full animate-spin mb-3" />
+                      <p className="text-white/40 text-xs tracking-wider">正在加載並解析更新日誌...</p>
                     </div>
-                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-violet-400/30 transition-all duration-300" style={{ background: 'rgba(124,58,237,0.07)' }}>
-                      <div className="flex items-center gap-2 flex-wrap mb-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#7c3aed33', color: '#c4b5fd' }}>LATEST</span>
-                        <span className="text-white font-bold text-sm">v1.3.0</span>
-                        <span className="text-white/30 text-xs">2026-05-22</span>
-                      </div>
-                      <h3 className="text-white/90 font-semibold text-sm mb-2">智慧地景回饋與 AI 故事潤飾 (語音辨識 + AI 整理 + 體驗優化)</h3>
-                      <p className="text-white/50 text-xs leading-relaxed">
-                        自由標記回饋表單（表單 B）迎來重大智慧化升級與操作防呆優化！
-                        <br />
-                        1. **語音輸入 🎙️**：走讀時只需動口，即可輕鬆將語音轉為繁體中文文字。
-                        <br />
-                        2. **Gemini AI 潤飾 ✨**：整合 Google Gemini 2.5 Flash 技術，一鍵將口語零碎的回憶整理成溫暖流暢的地景故事。
-                        <br />
-                        3. **彈出視窗防誤關機制 (Bug Fix) 🐛**：修復了因語音或 AI 卡片 React 節點卸載造成 Leaflet 地圖彈出視窗自動關閉的缺陷，確保回饋填寫過程順暢無阻。
-                      </p>
+                  ) : changelog.length === 0 ? (
+                    <div className="text-center py-12 text-white/30 text-sm">
+                      📭 目前尚無更新紀錄
                     </div>
-                  </div>
-
-                  {/* v1.2.0 */}
-                  <div className="relative flex gap-5">
-                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-blue-400/40" style={{ background: 'linear-gradient(135deg, #2563eb33, #1e3a8a33)' }}>
-                      <span className="text-base">🌡️</span>
-                    </div>
-                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-blue-400/30 transition-all duration-300" style={{ background: 'rgba(37,99,235,0.07)' }}>
-                      <div className="flex items-center gap-2 flex-wrap mb-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#2563eb22', color: '#93c5fd' }}>FEATURE</span>
-                        <span className="text-white font-bold text-sm">v1.2.0</span>
-                        <span className="text-white/30 text-xs">2026-05-21</span>
-                      </div>
-                      <h3 className="text-white/90 font-semibold text-sm mb-2">地表溫度圖層 (Landsat 8) 新增透明度滑桿</h3>
-                      <p className="text-white/50 text-xs leading-relaxed">在衛星地表溫度圖層控制中新增了平滑的透明度拉桿。使用者可以自由調節 Landsat 8 熱島效應分布圖的覆蓋透明度（從 0% 至 100%），方便比對地表實際地貌與熱量分布，提升水文與都市熱島的綜合研究體驗。</p>
-                    </div>
-                  </div>
-
-                  {/* v1.1.2 */}
-                  <div className="relative flex gap-5">
-                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-violet-400/30" style={{ background: 'linear-gradient(135deg, #7c3aed22, #4c1d9522)' }}>
-                      <span className="text-base">🔧</span>
-                    </div>
-                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-violet-400/20 transition-all duration-300" style={{ background: 'rgba(124,58,237,0.05)' }}>
-                      <div className="flex items-center gap-2 flex-wrap mb-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#7c3aed22', color: '#c4b5fd' }}>UPDATE</span>
-                        <span className="text-white font-bold text-sm">v1.1.2</span>
-                        <span className="text-white/30 text-xs">2026-05-21</span>
-                      </div>
-                      <h3 className="text-white/90 font-semibold text-sm mb-2">圖層工具提示資訊圖示</h3>
-                      <p className="text-white/50 text-xs leading-relaxed">在圖層控制面板中每個圖層的勾選框右側，新增了 ℹ️ 圓形資訊圖示按鈕。點擊後彈出詳細說明彈窗，說明該圖層的來源、時期與用途，讓使用者無需離開地圖即可了解圖層背景。</p>
-                    </div>
-                  </div>
-
-                  {/* v1.1.0 */}
-                  <div className="relative flex gap-5">
-                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-blue-400/40" style={{ background: 'linear-gradient(135deg, #2563eb33, #1e3a8a33)' }}>
-                      <span className="text-base">🗂️</span>
-                    </div>
-                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-blue-400/30 transition-all duration-300" style={{ background: 'rgba(37,99,235,0.07)' }}>
-                      <div className="flex items-center gap-2 flex-wrap mb-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#2563eb33', color: '#93c5fd' }}>UI</span>
-                        <span className="text-white font-bold text-sm">v1.1.0</span>
-                        <span className="text-white/30 text-xs">2026-05-19</span>
-                      </div>
-                      <h3 className="text-white/90 font-semibold text-sm mb-2">「資料來源」按鈕位置調整</h3>
-                      <p className="text-white/50 text-xs leading-relaxed">將「資料來源 ℹ️」控制按鈕從地圖上方移至左下角，位於「使用方法」按鈕正上方，解決了按鈕遮擋圖層下拉式選單的問題。同時調整展開動畫原點，確保彈出方向自然。</p>
-                    </div>
-                  </div>
-
-                  {/* v1.0.5 */}
-                  <div className="relative flex gap-5">
-                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-cyan-400/40" style={{ background: 'linear-gradient(135deg, #0891b233, #06407933)' }}>
-                      <span className="text-base">🏠</span>
-                    </div>
-                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-cyan-400/30 transition-all duration-300" style={{ background: 'rgba(8,145,178,0.07)' }}>
-                      <div className="flex items-center gap-2 flex-wrap mb-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#0891b233', color: '#67e8f9' }}>UI</span>
-                        <span className="text-white font-bold text-sm">v1.0.5</span>
-                        <span className="text-white/30 text-xs">2026-05-19</span>
-                      </div>
-                      <h3 className="text-white/90 font-semibold text-sm mb-2">側欄標題整合與地圖介面簡化</h3>
-                      <p className="text-white/50 text-xs leading-relaxed">將地圖左下角浮動的「信水義河 信義社大 · 水文導覽互動地圖」標題文字，整合至左側側欄頂部作為品牌識別。地圖底部僅保留「❓ 使用方法」單一按鈕，讓地圖畫面更加簡潔開闊。</p>
-                    </div>
-                  </div>
-
-                  {/* v1.0.0 */}
-                  <div className="relative flex gap-5">
-                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-emerald-400/40" style={{ background: 'linear-gradient(135deg, #05966933, #06402433)' }}>
-                      <span className="text-base">🚀</span>
-                    </div>
-                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-emerald-400/30 transition-all duration-300" style={{ background: 'rgba(5,150,105,0.07)' }}>
-                      <div className="flex items-center gap-2 flex-wrap mb-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#05966933', color: '#6ee7b7' }}>MILESTONE</span>
-                        <span className="text-white font-bold text-sm">v1.0.0</span>
-                        <span className="text-white/30 text-xs">2026-05-19</span>
-                      </div>
-                      <h3 className="text-white/90 font-semibold text-sm mb-2">水文回饋表單 A & B 與後台正式串接</h3>
-                      <p className="text-white/50 text-xs leading-relaxed">正式發佈 v1.0.0 穩定里程碑！推出路線舒適度評分（表單 A）與自由標記故事回饋（表單 B）。使用者可於地圖任意點選落點、選取標籤並上傳現場相片（經前端智慧壓縮）。回饋資料透過 Next.js 後端 API Proxy 安全轉發，自動寫入 Google Sheets 後台並儲存相片至雲端硬碟。</p>
-                    </div>
-                  </div>
-
-                  {/* v0.9.5 */}
-                  <div className="relative flex gap-5">
-                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-emerald-400/30" style={{ background: 'linear-gradient(135deg, #05966922, #06402422)' }}>
-                      <span className="text-base">📋</span>
-                    </div>
-                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-emerald-400/20 transition-all duration-300" style={{ background: 'rgba(5,150,105,0.05)' }}>
-                      <div className="flex items-center gap-2 flex-wrap mb-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#05966922', color: '#6ee7b7' }}>FEATURE</span>
-                        <span className="text-white font-bold text-sm">v0.9.5</span>
-                        <span className="text-white/30 text-xs">2026-05-18</span>
-                      </div>
-                      <h3 className="text-white/90 font-semibold text-sm mb-2">Driver.js 導覽教學與都市計畫分區透明度</h3>
-                      <p className="text-white/50 text-xs leading-relaxed">整合 Driver.js 實作 9 步驟互動式新手導覽，引導使用者認識路線、歷史圖層與定位功能，降低學習門檻。同時為「都市計畫分區」圖層新增 0-100% 透明度調整滑桿，使多圖層疊加對照體驗更臻完善。</p>
-                    </div>
-                  </div>
-
-                  {/* v0.9.0 */}
-                  <div className="relative flex gap-5">
-                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-amber-400/40" style={{ background: 'linear-gradient(135deg, #d9770633, #92400e33)' }}>
-                      <span className="text-base">🛰️</span>
-                    </div>
-                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-amber-400/30 transition-all duration-300" style={{ background: 'rgba(217,119,6,0.07)' }}>
-                      <div className="flex items-center gap-2 flex-wrap mb-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#d9770633', color: '#fde68a' }}>UX</span>
-                        <span className="text-white font-bold text-sm">v0.9.0</span>
-                        <span className="text-white/30 text-xs">2026-05-13</span>
-                      </div>
-                      <h3 className="text-white/90 font-semibold text-sm mb-2">多光譜衛星影像整合與全域字體動態調整</h3>
-                      <p className="text-white/50 text-xs leading-relaxed">整合 Sentinel-2 衛星影像，提供真彩色、植被健康指數（NDVI）與濕度指數（NDWI）三種光譜分析模式。此外，於側欄新增全域字體大小調節器（小 / 中 / 大），運用 CSS 自訂變數動態縮放全頁字體比例，大幅提升可讀性與無障礙操作體驗。</p>
-                    </div>
-                  </div>
-
-                  {/* v0.8.5 */}
-                  <div className="relative flex gap-5">
-                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-slate-400/30" style={{ background: 'rgba(100,116,139,0.15)' }}>
-                      <span className="text-base">🕰️</span>
-                    </div>
-                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-slate-400/20 transition-all duration-300" style={{ background: 'rgba(100,116,139,0.05)' }}>
-                      <div className="flex items-center gap-2 flex-wrap mb-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#64748b33', color: '#cbd5e1' }}>FEATURE</span>
-                        <span className="text-white font-bold text-sm">v0.8.5</span>
-                        <span className="text-white/30 text-xs">2026-05-12</span>
-                      </div>
-                      <h3 className="text-white/90 font-semibold text-sm mb-2">歷史地圖不透明度滑桿控制</h3>
-                      <p className="text-white/50 text-xs leading-relaxed">為所有疊合的古地圖圖層導入獨立的不透明度滑動拉桿（0-100%），讓使用者能微調疊合比例，直觀比對清代、日治與戰後等不同時期的信義區地理水文變遷。</p>
-                    </div>
-                  </div>
-
-                  {/* v0.8.0 */}
-                  <div className="relative flex gap-5">
-                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-slate-400/30" style={{ background: 'rgba(100,116,139,0.15)' }}>
-                      <span className="text-base">🌡️</span>
-                    </div>
-                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-slate-400/20 transition-all duration-300" style={{ background: 'rgba(100,116,139,0.05)' }}>
-                      <div className="flex items-center gap-2 flex-wrap mb-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#64748b33', color: '#cbd5e1' }}>DATA</span>
-                        <span className="text-white font-bold text-sm">v0.8.0</span>
-                        <span className="text-white/30 text-xs">2026-05-07</span>
-                      </div>
-                      <h3 className="text-white/90 font-semibold text-sm mb-2">Google Earth Engine (GEE) 地表溫度整合</h3>
-                      <p className="text-white/50 text-xs leading-relaxed">首度透過 Google Earth Engine 整合即時地表溫度（LST）熱力圖，可視化信義區都市熱島效應分布與水體冷卻效應，為水文與環境走讀研究提供量化科學依據。</p>
-                    </div>
-                  </div>
-
-                  {/* v0.7.0 */}
-                  <div className="relative flex gap-5">
-                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-slate-400/30" style={{ background: 'rgba(100,116,139,0.15)' }}>
-                      <span className="text-base">🗺️</span>
-                    </div>
-                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-slate-400/20 transition-all duration-300" style={{ background: 'rgba(100,116,139,0.05)' }}>
-                      <div className="flex items-center gap-2 flex-wrap mb-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#64748b33', color: '#cbd5e1' }}>DATA</span>
-                        <span className="text-white font-bold text-sm">v0.7.0</span>
-                        <span className="text-white/30 text-xs">2026-05-06</span>
-                      </div>
-                      <h3 className="text-white/90 font-semibold text-sm mb-2">五層歷史古地圖疊加與路線結構優化</h3>
-                      <p className="text-white/50 text-xs leading-relaxed">整合 1904 臺灣堡圖、1921 地形圖、1939 瑠公水利區域圖、1944 美軍地形圖及 1989 地形圖等五張珍貴古地圖，支援一鍵切換。同時修正水文路線斷點缺口，大幅優化坐標連貫性。</p>
-                    </div>
-                  </div>
-
-                  {/* v0.6.0 */}
-                  <div className="relative flex gap-5">
-                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-slate-400/30" style={{ background: 'rgba(100,116,139,0.15)' }}>
-                      <span className="text-base">🌳</span>
-                    </div>
-                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-slate-400/20 transition-all duration-300" style={{ background: 'rgba(100,116,139,0.05)' }}>
-                      <div className="flex items-center gap-2 flex-wrap mb-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#64748b33', color: '#cbd5e1' }}>DATA</span>
-                        <span className="text-white font-bold text-sm">v0.6.0</span>
-                        <span className="text-white/30 text-xs">2026-04-30</span>
-                      </div>
-                      <h3 className="text-white/90 font-semibold text-sm mb-2">行道樹遮蔭圖層與點群聚 (Clustering) 整合</h3>
-                      <p className="text-white/50 text-xs leading-relaxed">匯入信義區行道樹開放資料，並實作 MarkerClusterGroup 群聚渲染，高效率在地圖上呈現樹木遮蔭分布與單木詳細樹種資訊，避免地圖標記擁擠卡頓。</p>
-                    </div>
-                  </div>
-
-                  {/* v0.5.0 */}
-                  <div className="relative flex gap-5">
-                    <div className="relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-slate-400/30" style={{ background: 'rgba(100,116,139,0.15)' }}>
-                      <span className="text-base">🌱</span>
-                    </div>
-                    <div className="flex-1 rounded-2xl p-5 border border-white/8 hover:border-slate-400/20 transition-all duration-300" style={{ background: 'rgba(100,116,139,0.05)' }}>
-                      <div className="flex items-center gap-2 flex-wrap mb-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style={{ background: '#64748b33', color: '#cbd5e1' }}>DATA</span>
-                        <span className="text-white font-bold text-sm">v0.5.0</span>
-                        <span className="text-white/30 text-xs">2026-04-29</span>
-                      </div>
-                      <h3 className="text-white/90 font-semibold text-sm mb-2">信水義河水文互動地圖基礎框架建立</h3>
-                      <p className="text-white/50 text-xs leading-relaxed">完成信水義河地圖專案初始化！以 Next.js 16 + TailwindCSS v4 搭建明亮簡潔的地圖版面，整合 Leaflet 與 OpenStreetMap 基礎圖資底圖，完成四大水文導覽路線之核心繪製與站點座標串接。</p>
-                    </div>
-                  </div>
-
+                  ) : (
+                    changelog.map((entry, idx) => {
+                      const styles = getTagStyles(entry.tag);
+                      return (
+                        <div key={entry.version + idx} className="relative flex gap-5">
+                          {/* Left Dot with Emoji */}
+                          <div 
+                            className={`relative z-10 mt-1 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border ${styles.dotBorder}`} 
+                            style={{ background: styles.bgGradient }}
+                          >
+                            <span className="text-base">{entry.emoji}</span>
+                          </div>
+                          
+                          {/* Right Content Card */}
+                          <div 
+                            className={`flex-1 rounded-2xl p-5 border border-white/8 ${styles.borderHover} transition-all duration-300`} 
+                            style={{ background: styles.cardBg }}
+                          >
+                            <div className="flex items-center gap-2 flex-wrap mb-3">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider ${styles.badgeBg}`}>
+                                {entry.tag.toUpperCase()}
+                              </span>
+                              <span className="text-white font-bold text-sm">{entry.version}</span>
+                              <span className="text-white/30 text-xs">{entry.date}</span>
+                            </div>
+                            <h3 className="text-white/90 font-semibold text-sm mb-2">{entry.title}</h3>
+                            <div className="text-white/50 text-xs leading-relaxed space-y-1.5">
+                              {entry.descriptions.map((desc, dIdx) => (
+                                <div key={dIdx}>
+                                  {entry.descriptions.length > 1 ? `${dIdx + 1}. ` : '• '}
+                                  {desc}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
 
