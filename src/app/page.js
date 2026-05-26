@@ -23,6 +23,7 @@ const MapView = dynamic(() => import('@/components/MapView'), {
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState('map'); // 'usage', 'map', 'layers', 'form', 'history', 'changelog'
   const [fontSize, setFontSize] = useState('medium'); // 'small', 'medium', 'large'
+  const [showLanding, setShowLanding] = useState(true);
 
   // Calculate font scale multiplier
   const fontScale = fontSize === 'small' ? 0.875 : fontSize === 'large' ? 1.125 : 1;
@@ -134,19 +135,54 @@ export default function HomePage() {
   };
 
   return (
-    <main className="relative w-full h-dvh flex overflow-hidden bg-slate-900" style={{
+    <div className="flex flex-col w-full h-dvh overflow-hidden bg-slate-900" style={{
       '--font-scale': fontScale,
     }}>
-      {/* ── Left Sidebar ── */}
-      <nav id="sidebar-navigation" className="z-[2000] w-24 md:w-32 bg-slate-900/95 backdrop-blur-md border-r border-white/10 flex flex-col items-center py-6 gap-4 shadow-2xl">
-        <div className="flex flex-col items-center text-center px-1 mb-4 gap-1.5">
-          <h1 className="text-blue-400 text-sm md:text-base font-black tracking-widest leading-tight">
-            信水義河
-          </h1>
-          <p className="text-slate-500 text-[8px] md:text-[9px] leading-tight font-semibold">
-            信義社大<br />水文導覽地圖
-          </p>
+      {/* ── Top Header ── */}
+      <header className="z-[3000] w-full h-16 bg-slate-950/90 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-4 md:px-6 shadow-xl flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-lg shadow-inner">
+            💧
+          </div>
+          <div className="flex items-center">
+            <h1 className="bg-gradient-to-r from-blue-400 via-cyan-400 to-sky-300 bg-clip-text text-transparent text-base md:text-xl font-black tracking-widest leading-none">
+              信水義河
+            </h1>
+            <span className="hidden sm:block h-5 w-px bg-white/20 mx-3" />
+            <p className="hidden sm:block text-slate-400 text-xs md:text-sm font-semibold tracking-wider">
+              信義社大 水文導覽地圖
+            </p>
+          </div>
         </div>
+
+        <div className="flex items-center gap-2 md:gap-3">
+          <button
+            onClick={() => setShowLanding(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-blue-300 bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-400/40 hover:text-white transition-all duration-300 cursor-pointer shadow-lg shadow-blue-900/10 active:scale-95"
+          >
+            <span>🌍</span>
+            <span className="hidden xs:inline">關於此計畫</span>
+          </button>
+          
+          <button
+            onClick={startTour}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 hover:border-cyan-400/40 hover:text-white transition-all duration-300 cursor-pointer shadow-lg shadow-cyan-900/10 active:scale-95"
+          >
+            <span>💡</span>
+            <span className="hidden xs:inline">新手指引</span>
+          </button>
+        </div>
+      </header>
+
+      {/* ── Main Body (Sidebar + Map Content) ── */}
+      <main className="flex-1 w-full flex overflow-hidden relative">
+        {/* ── Left Sidebar ── */}
+        <nav id="sidebar-navigation" className="z-[2000] w-24 md:w-32 bg-slate-900/95 backdrop-blur-md border-r border-white/10 flex flex-col items-center py-6 gap-4 shadow-2xl">
+          <div className="flex flex-col items-center justify-center p-3 mb-2 flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-xl shadow-inner shadow-blue-500/5 animate-pulse">
+              🌊
+            </div>
+          </div>
         
         <button 
           onClick={() => setActiveTab('map')}
@@ -804,7 +840,135 @@ export default function HomePage() {
           </div>
         </div>
       </div>
-    </main>
+      </main>
+
+      {/* ── Landing Page Welcome Screen Overlay ── */}
+      {showLanding && (
+        <div className="absolute inset-0 z-[4000] overflow-y-auto flex flex-col items-center py-12 px-4 md:px-8 select-none" style={{
+          background: 'radial-gradient(circle at top, #0b0f2a 0%, #060917 50%, #03050c 100%)'
+        }}>
+          {/* Ambient decorative glowing backdrops */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+            <div className="absolute top-[10%] left-[15%] w-[45%] h-[45%] rounded-full opacity-20 blur-[120px]" style={{ background: 'radial-gradient(circle, #2563eb 0%, transparent 70%)' }} />
+            <div className="absolute bottom-[10%] right-[15%] w-[45%] h-[45%] rounded-full opacity-15 blur-[120px]" style={{ background: 'radial-gradient(circle, #0ea5e9 0%, transparent 70%)' }} />
+          </div>
+
+          <div className="relative z-10 max-w-5xl w-full flex flex-col items-center gap-10">
+            {/* Hero Header */}
+            <div className="text-center flex flex-col items-center gap-4 max-w-2xl">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 shadow-md shadow-blue-500/5 animate-bounce">
+                ✨ 信義社區大學 · 水文走讀探索專案
+              </span>
+              <h2 className="font-serif text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-indigo-400 tracking-widest leading-tight mt-2 filter drop-shadow-[0_2px_10px_rgba(59,130,246,0.2)]">
+                信水義河
+              </h2>
+              <p className="text-slate-300 font-serif text-lg md:text-xl tracking-wider leading-relaxed mt-2">
+                以水文地景為經緯，編織信義區的在地記憶
+              </p>
+              <div className="h-0.5 w-24 bg-gradient-to-r from-transparent via-blue-500 to-transparent mt-4" />
+            </div>
+
+            {/* Core Value 5-Card Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full mt-4">
+              
+              {/* Card 1: 🎒 導覽學員 */}
+              <div className="group relative rounded-3xl p-6 border border-white/5 bg-slate-900/40 backdrop-blur-md hover:bg-slate-900/60 hover:border-blue-500/30 transition-all duration-500 shadow-xl flex flex-col gap-4">
+                <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 group-hover:border-blue-400/40 transition-all duration-300">
+                  🎒
+                </div>
+                <div>
+                  <h3 className="text-white font-extrabold text-base md:text-lg tracking-wider mb-2 group-hover:text-blue-300 transition-colors">
+                    導覽學員 · 溫故知新
+                  </h3>
+                  <p className="text-slate-400 text-xs md:text-sm leading-relaxed font-medium">
+                    曾參與信義社大水文走讀導覽嗎？這個地圖能讓您跨越時空重溫走讀時的感動。您可以隨時回顧四條精心規劃的水文路線與豐富的站點內容，更能將當時的所見、所聞以「語音或文字」記錄下來，讓走讀的學習得以延續，化作永恆的數位記憶。
+                  </p>
+                </div>
+              </div>
+
+              {/* Card 2: 🚶 自主踏查 */}
+              <div className="group relative rounded-3xl p-6 border border-white/5 bg-slate-900/40 backdrop-blur-md hover:bg-slate-900/60 hover:border-emerald-500/30 transition-all duration-500 shadow-xl flex flex-col gap-4">
+                <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 group-hover:border-emerald-400/40 transition-all duration-300">
+                  🚶
+                </div>
+                <div>
+                  <h3 className="text-white font-extrabold text-base md:text-lg tracking-wider mb-2 group-hover:text-emerald-300 transition-colors">
+                    自主踏查 · GPS 實地探索
+                  </h3>
+                  <p className="text-slate-400 text-xs md:text-sm leading-relaxed font-medium">
+                    即使沒有挑戰實體導覽，您也能依循地圖上的精準標記進行一場「個人專屬的水文微旅行」。在手機上開啟 GPS 實體定位功能，您將能一邊行走，一邊隨時比對周遭的河道遺跡、老樹遮蔭，並在踏查過後分享您的真實感受與新發現，成為都市河流的現代探索者。
+                  </p>
+                </div>
+              </div>
+
+              {/* Card 3: 🕰️ 跨越時空 */}
+              <div className="group relative rounded-3xl p-6 border border-white/5 bg-slate-900/40 backdrop-blur-md hover:bg-slate-900/60 hover:border-indigo-500/30 transition-all duration-500 shadow-xl flex flex-col gap-4">
+                <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 group-hover:border-indigo-400/40 transition-all duration-300">
+                  🕰️
+                </div>
+                <div>
+                  <h3 className="text-white font-extrabold text-base md:text-lg tracking-wider mb-2 group-hover:text-indigo-300 transition-colors">
+                    跨越時空 · 多元圖層對照
+                  </h3>
+                  <p className="text-slate-400 text-xs md:text-sm leading-relaxed font-medium">
+                    無論您是走讀學員或文史愛好者，皆可自由疊加並對照多種圖資——包含日治堡圖、大正地形圖、瑠公圳區域圖等。透過創新的透明度微調拉桿，直觀比對清代埤塘、日治水圳到當代大排水溝的演變，深入剖析水文脈絡、歷史路線與現代都市發展的共生關係。
+                  </p>
+                </div>
+              </div>
+
+              {/* Card 4: 🏡 社區居民 */}
+              <div className="group relative rounded-3xl p-6 border border-white/5 bg-slate-900/40 backdrop-blur-md hover:bg-slate-900/60 hover:border-purple-500/30 transition-all duration-500 shadow-xl flex flex-col gap-4">
+                <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 group-hover:border-purple-400/40 transition-all duration-300">
+                  🏡
+                </div>
+                <div>
+                  <h3 className="text-white font-extrabold text-base md:text-lg tracking-wider mb-2 group-hover:text-purple-300 transition-colors">
+                    社區居民 · 尋找百年的家
+                  </h3>
+                  <p className="text-slate-400 text-xs md:text-sm leading-relaxed font-medium">
+                    住在信義區的朋友，這是一個專屬於您的在地故事館。您可以透過圖層疊合功能，找到您現時居住的大樓與街道特徵。將當前街廓對比一百年前的臺灣堡圖，您將驚奇地發現：原來您的家在百年前可能是一片碧綠的水稻田、或是瑠公圳的潺潺支流。
+                  </p>
+                </div>
+              </div>
+
+              {/* Card 5: 💬 數位增磚 */}
+              <div className="group relative rounded-3xl p-6 border border-white/5 bg-slate-900/40 backdrop-blur-md hover:bg-slate-900/60 hover:border-cyan-500/30 transition-all duration-500 shadow-xl flex flex-col gap-4 lg:col-span-2">
+                <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 group-hover:border-cyan-400/40 transition-all duration-300">
+                  💬
+                </div>
+                <div>
+                  <h3 className="text-white font-extrabold text-base md:text-lg tracking-wider mb-2 group-hover:text-cyan-300 transition-colors">
+                    數位增磚 · 社區共創記錄
+                  </h3>
+                  <p className="text-slate-400 text-xs md:text-sm leading-relaxed font-medium">
+                    水文歷史不只存在於書本中，更活在眾人的回憶裡。在未來，您可以在地圖上閱覽其他居民與學員留下的點滴回饋、昔日相片與口述故事。以「數位增磚」的方式，共同編織出一張充滿溫度、持續成長的「社區數位水文地景誌」。
+                  </p>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Action Area */}
+            <div className="flex flex-col sm:flex-row gap-4 items-center mt-6 w-full sm:w-auto z-20">
+              <button
+                onClick={() => {
+                  setShowLanding(false);
+                }}
+                className="w-full sm:w-auto px-10 py-4 rounded-2xl text-base font-bold text-white bg-blue-600 hover:bg-blue-500 transition-all duration-300 cursor-pointer shadow-lg shadow-blue-500/30 active:scale-95 flex items-center justify-center gap-2 border border-blue-400/30 hover:shadow-blue-500/50 hover:border-blue-300/40 group"
+              >
+                <span>🗺️ 展開水文地圖探索</span>
+                <span className="group-hover:translate-x-1 transition-transform">→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
