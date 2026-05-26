@@ -160,14 +160,6 @@ export default function HomePage() {
             <span>🏠</span>
             <span className="hidden xs:inline">首頁</span>
           </button>
-          
-          <button
-            onClick={() => setActiveTab('usage')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-blue-300 bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-400/40 hover:text-white transition-all duration-300 cursor-pointer shadow-md active:scale-95"
-          >
-            <span>❓</span>
-            <span className="hidden xs:inline">使用方法</span>
-          </button>
         </div>
       </header>
 
