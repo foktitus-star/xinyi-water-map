@@ -274,8 +274,7 @@ export default function MapView({ onStartTour }) {
           border border-blue-900/10 rounded-2xl
           shadow-xl text-slate-800
           transition-all duration-300 ease-in-out
-          ${expandPanel ? 'w-72 p-5' : 'w-12 h-12 p-0'}
-          max-h-[calc(100dvh-24px)] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]
+          ${expandPanel ? 'w-72 h-[calc(100dvh-32px)] md:h-[600px] max-h-[calc(100dvh-32px)] p-4 flex flex-col' : 'w-12 h-12 p-0 overflow-hidden'}
         `}
       >
         {/* Toggle button */}
@@ -284,10 +283,10 @@ export default function MapView({ onStartTour }) {
           onClick={() => setExpandPanel(!expandPanel)}
           className={`
             flex items-center justify-center
-            ${expandPanel ? 'w-full mb-3' : 'w-12 h-12'}
+            ${expandPanel ? 'w-full mb-2' : 'w-12 h-12'}
             rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-900
             transition-colors duration-200
-            text-lg cursor-pointer font-bold
+            text-lg cursor-pointer font-bold flex-shrink-0
           `}
           aria-label="切換圖層面板"
         >
@@ -295,168 +294,171 @@ export default function MapView({ onStartTour }) {
         </button>
 
         {expandPanel && (
-          <div id="layer-control-panel-content" className="w-full">
-            <h3 className="text-base font-bold mb-3 tracking-wide text-blue-900">
+          <>
+            <h3 className="text-base font-bold mb-3 tracking-wide text-blue-900 flex-shrink-0">
               圖層控制
             </h3>
 
-            {/* Route toggles */}
-            <div id="tour-route-toggles" className="w-full">
-              <div className="space-y-2 mb-4">
-                {routes.map((route, idx) => (
-                  <div
-                    key={route.id}
-                    className="flex items-center justify-between gap-2 hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors w-full"
-                  >
-                    <label
-                      className="flex items-center gap-3 cursor-pointer flex-1"
+            {/* Scrollable Body */}
+            <div className="flex-1 overflow-y-auto pr-1 select-none space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+              {/* Route toggles */}
+              <div id="tour-route-toggles" className="w-full">
+                <div className="space-y-2 mb-4">
+                  {routes.map((route, idx) => (
+                    <div
+                      key={route.id}
+                      className="flex items-center justify-between gap-2 hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors w-full"
                     >
-                      <input
-                        type="checkbox"
-                        checked={visibility[idx]}
-                        onChange={() => toggleRoute(idx)}
-                        className="w-5 h-5 rounded accent-current cursor-pointer"
-                        style={{ accentColor: route.color }}
-                      />
-                      <span
-                        className="w-3 h-3 rounded-full flex-shrink-0"
-                        style={{ background: route.color }}
-                      />
-                      <span className="text-sm leading-tight text-slate-700">
-                        {ROUTE_LABELS[idx].label}
-                      </span>
-                    </label>
-                    <InfoTooltip id={`route-${idx}`} />
-                  </div>
-                ))}
-              </div>
-
-              {/* Quick buttons for routes */}
-              <div className="flex gap-2 mb-4">
-                <button
-                  onClick={allOn}
-                  className="flex-1 text-xs py-2 rounded-lg font-medium
-                             bg-blue-50 hover:bg-blue-100 text-blue-800
-                             transition-colors cursor-pointer"
-                >
-                  全選
-                </button>
-                <button
-                  onClick={allOff}
-                  className="flex-1 text-xs py-2 rounded-lg font-medium
-                             bg-slate-100 hover:bg-slate-200 text-slate-700
-                             transition-colors cursor-pointer"
-                >
-                  全清
-                </button>
-              </div>
-            </div>
-
-            {/* Open Data toggles */}
-            <div id="tour-open-data-toggles" className="w-full">
-              <div className="space-y-2 mb-4 pt-3 border-t border-slate-200">
-                <div className="flex items-center justify-between gap-2 hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors w-full">
-                  <label
-                    className="flex items-center gap-3 cursor-pointer flex-1"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={showTrees}
-                      onChange={() => setShowTrees(!showTrees)}
-                      className="w-5 h-5 rounded accent-[#16a34a] cursor-pointer"
-                    />
-                    <span className="text-sm leading-tight text-slate-700">🌳 行道樹遮蔭</span>
-                  </label>
-                  <InfoTooltip id="trees" />
+                      <label
+                        className="flex items-center gap-3 cursor-pointer flex-1"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={visibility[idx]}
+                          onChange={() => toggleRoute(idx)}
+                          className="w-5 h-5 rounded accent-current cursor-pointer"
+                          style={{ accentColor: route.color }}
+                        />
+                        <span
+                          className="w-3 h-3 rounded-full flex-shrink-0"
+                          style={{ background: route.color }}
+                        />
+                        <span className="text-sm leading-tight text-slate-700">
+                          {ROUTE_LABELS[idx].label}
+                        </span>
+                      </label>
+                      <InfoTooltip id={`route-${idx}`} />
+                    </div>
+                  ))}
                 </div>
 
-                <div className="flex items-center justify-between gap-2 hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors w-full">
-                  <label
-                    className="flex items-center gap-3 cursor-pointer flex-1"
+                {/* Quick buttons for routes */}
+                <div className="flex gap-2 mb-4">
+                  <button
+                    onClick={allOn}
+                    className="flex-1 text-xs py-2 rounded-lg font-medium
+                               bg-blue-50 hover:bg-blue-100 text-blue-800
+                               transition-colors cursor-pointer"
                   >
-                    <input
-                      type="checkbox"
-                      checked={showSidewalks}
-                      onChange={() => setShowSidewalks(!showSidewalks)}
-                      className="w-5 h-5 rounded accent-[#60a5fa] cursor-pointer"
-                    />
-                    <span className="text-sm leading-tight text-slate-700">🚶 人行道範圍</span>
-                  </label>
-                  <InfoTooltip id="sidewalks" />
+                    全選
+                  </button>
+                  <button
+                    onClick={allOff}
+                    className="flex-1 text-xs py-2 rounded-lg font-medium
+                               bg-slate-100 hover:bg-slate-200 text-slate-700
+                               transition-colors cursor-pointer"
+                  >
+                    全清
+                  </button>
                 </div>
+              </div>
 
-                <div className="flex flex-col mb-1">
+              {/* Open Data toggles */}
+              <div id="tour-open-data-toggles" className="w-full">
+                <div className="space-y-2 mb-4 pt-3 border-t border-slate-200">
                   <div className="flex items-center justify-between gap-2 hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors w-full">
                     <label
                       className="flex items-center gap-3 cursor-pointer flex-1"
                     >
                       <input
                         type="checkbox"
-                        checked={showZoning}
-                        onChange={() => setShowZoning(!showZoning)}
-                        className="w-5 h-5 rounded accent-[#fb923c] cursor-pointer"
+                        checked={showTrees}
+                        onChange={() => setShowTrees(!showTrees)}
+                        className="w-5 h-5 rounded accent-[#16a34a] cursor-pointer"
                       />
-                      <span className="text-sm leading-tight text-slate-700">🏘️ 都市計畫分區</span>
+                      <span className="text-sm leading-tight text-slate-700">🌳 行道樹遮蔭</span>
                     </label>
-                    <InfoTooltip id="zoning" />
+                    <InfoTooltip id="trees" />
                   </div>
 
-                  {/* Opacity Slider */}
-                  <div className={`
-                    flex items-center gap-2 px-10 transition-all duration-300 ease-in-out
-                    ${showZoning ? 'h-6 opacity-100 mt-0.5' : 'h-0 opacity-0 overflow-hidden'}
-                  `}>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.01"
-                      value={zoningOpacity}
-                      onChange={(e) => setZoningOpacity(parseFloat(e.target.value))}
-                      className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#fb923c]"
-                    />
-                    <span className="text-[10px] font-mono font-bold text-slate-500 w-8 text-right">
-                      {Math.round(zoningOpacity * 100)}%
-                    </span>
+                  <div className="flex items-center justify-between gap-2 hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors w-full">
+                    <label
+                      className="flex items-center gap-3 cursor-pointer flex-1"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={showSidewalks}
+                        onChange={() => setShowSidewalks(!showSidewalks)}
+                        className="w-5 h-5 rounded accent-[#60a5fa] cursor-pointer"
+                      />
+                      <span className="text-sm leading-tight text-slate-700">🚶 人行道範圍</span>
+                    </label>
+                    <InfoTooltip id="sidewalks" />
                   </div>
+
+                  <div className="flex flex-col mb-1">
+                    <div className="flex items-center justify-between gap-2 hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors w-full">
+                      <label
+                        className="flex items-center gap-3 cursor-pointer flex-1"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={showZoning}
+                          onChange={() => setShowZoning(!showZoning)}
+                          className="w-5 h-5 rounded accent-[#fb923c] cursor-pointer"
+                        />
+                        <span className="text-sm leading-tight text-slate-700">🏘️ 都市計畫分區</span>
+                      </label>
+                      <InfoTooltip id="zoning" />
+                    </div>
+
+                    {/* Opacity Slider */}
+                    <div className={`
+                      flex items-center gap-2 px-10 transition-all duration-300 ease-in-out
+                      ${showZoning ? 'h-6 opacity-100 mt-0.5' : 'h-0 opacity-0 overflow-hidden'}
+                    `}>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={zoningOpacity}
+                        onChange={(e) => setZoningOpacity(parseFloat(e.target.value))}
+                        className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#fb923c]"
+                      />
+                      <span className="text-[10px] font-mono font-bold text-slate-500 w-8 text-right">
+                        {Math.round(zoningOpacity * 100)}%
+                      </span>
+                    </div>
+                  </div>
+
+                  <TemperatureControl
+                    show={showTemperature}
+                    onChange={setShowTemperature}
+                    loading={temperatureLoading}
+                    opacity={temperatureOpacity}
+                    onOpacityChange={setTemperatureOpacity}
+                  />
                 </div>
+              </div>
 
-                <TemperatureControl
-                  show={showTemperature}
-                  onChange={setShowTemperature}
-                  loading={temperatureLoading}
-                  opacity={temperatureOpacity}
-                  onOpacityChange={setTemperatureOpacity}
-                />
+              {/* Historical maps selector */}
+              <HistoricalControl
+                activeHistory={activeHistory}
+                toggleHistory={toggleHistory}
+                historyOpacities={historyOpacities}
+                onOpacityChange={handleHistoryOpacityChange}
+              />
+
+              {/* Satellite layers selector */}
+              <SatelliteControl
+                activeSatellite={activeSatellite}
+                toggleSatellite={toggleSatellite}
+                satelliteOpacities={satelliteOpacities}
+                onOpacityChange={handleSatelliteOpacityChange}
+              />
+
+              {/* Legend */}
+              <div className="mt-4 pt-3 border-t border-slate-200">
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  共 {routes.reduce((s, r) => s + r.stations.length, 0)} 個站點
+                  ・點擊站點查看詳情
+                </p>
               </div>
             </div>
 
-            {/* Historical maps selector */}
-            <HistoricalControl
-              activeHistory={activeHistory}
-              toggleHistory={toggleHistory}
-              historyOpacities={historyOpacities}
-              onOpacityChange={handleHistoryOpacityChange}
-            />
-
-            {/* Satellite layers selector */}
-            <SatelliteControl
-              activeSatellite={activeSatellite}
-              toggleSatellite={toggleSatellite}
-              satelliteOpacities={satelliteOpacities}
-              onOpacityChange={handleSatelliteOpacityChange}
-            />
-
-            {/* Legend */}
-            <div className="mt-4 pt-3 border-t border-slate-200">
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                共 {routes.reduce((s, r) => s + r.stations.length, 0)} 個站點
-                ・點擊站點查看詳情
-              </p>
-            </div>
-
-            {/* Free Marker Toggle */}
-            <div className="mt-4 pt-3 border-t border-slate-200">
+            {/* Fixed Footer */}
+            <div className="mt-3 pt-3 border-t border-slate-200 flex-shrink-0">
               <button
                 onClick={() => {
                   setIsAddMarkerMode(!isAddMarkerMode);
@@ -477,7 +479,7 @@ export default function MapView({ onStartTour }) {
                 )}
               </button>
             </div>
-          </div>
+          </>
         )}
       </div>
 
