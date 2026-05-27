@@ -16,6 +16,7 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
 
   // EXIF 照片資訊狀態
   const [photoExif, setPhotoExif] = useState(null);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // AI 圖片轉譯狀態
   const [isDescribingImage, setIsDescribingImage] = useState(false);
@@ -159,8 +160,7 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
     }
   };
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
+  const processFile = async (file) => {
     if (!file) return;
 
     setPhotoFilename(file.name);
@@ -233,6 +233,36 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
       img.src = event.target.result;
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    processFile(file);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      processFile(file);
+    } else {
+      alert('請拖移照片檔案進行上傳！');
+    }
   };
 
   // AI 圖片轉譯：將照片送至 Gemini 多模態 API 進行文字辨識與場景描述
@@ -539,11 +569,20 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
         <div>
           <label className="block text-sm font-bold text-slate-700 mb-1">上傳照片</label>
           <div 
-            className="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center cursor-pointer hover:bg-slate-50 transition-colors"
+            className={`
+              border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-all
+              ${isDragOver 
+                ? 'border-blue-500 bg-blue-50/50 scale-[1.01]' 
+                : 'border-slate-300 hover:bg-slate-50 hover:border-slate-400'}
+            `}
             onClick={() => fileInputRef.current?.click()}
+            onDragOver={handleDragOver}
+            onDragEnter={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
           >
             {photoBase64 ? (
-              <div className="relative">
+              <div className="relative" onClick={(e) => e.stopPropagation()}>
                 <img src={photoBase64} alt="Preview" className="max-h-32 mx-auto rounded" />
                 <button 
                   onClick={(e) => { 
@@ -556,15 +595,17 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
                       setImageDescribeError('');
                     }, 50);
                   }}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs shadow-md"
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs shadow-md cursor-pointer"
                 >
                   ✕
                 </button>
               </div>
             ) : (
-              <div className="text-slate-500 flex flex-col items-center">
-                <span className="text-2xl mb-1">📷</span>
-                <span className="text-xs">點擊選擇照片 (自動壓縮)</span>
+              <div className="text-slate-500 flex flex-col items-center pointer-events-none">
+                <span className="text-2xl mb-1">{isDragOver ? '📥' : '📷'}</span>
+                <span className="text-xs font-semibold">
+                  {isDragOver ? '放開以匯入照片' : '點擊選擇或拖移照片至此 (自動壓縮)'}
+                </span>
               </div>
             )}
             <input 
