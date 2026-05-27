@@ -299,7 +299,7 @@ export default function HomePage() {
             z-[2000] bg-slate-900/95 backdrop-blur-md border-r border-white/10 
             flex flex-col items-center shadow-2xl transition-all duration-300 ease-in-out
             ${isSidebarOpen ? 'w-20 py-4 px-2 gap-3' : 'w-0 p-0 border-r-0 overflow-hidden gap-0'}
-            md:w-32 md:py-6 md:px-3 md:gap-4 md:flex
+            md:w-24 md:py-6 md:px-2 md:gap-3 md:flex
           `}
         >
         
