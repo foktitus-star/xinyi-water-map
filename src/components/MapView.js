@@ -274,7 +274,7 @@ export default function MapView({ onStartTour }) {
           border border-blue-900/10 rounded-2xl
           shadow-xl text-slate-800
           transition-all duration-300 ease-in-out
-          ${expandPanel ? 'w-72 h-[calc(100dvh-32px)] md:h-[600px] max-h-[calc(100dvh-32px)] p-4 flex flex-col' : 'w-12 h-12 p-0 overflow-hidden'}
+          ${expandPanel ? 'w-60 md:w-72 h-auto max-h-[50dvh] md:h-[600px] md:max-h-[calc(100dvh-32px)] p-3 md:p-4 flex flex-col' : 'w-10 h-10 md:w-12 md:h-12 p-0 overflow-hidden'}
         `}
       >
         {/* Toggle button */}
@@ -283,10 +283,10 @@ export default function MapView({ onStartTour }) {
           onClick={() => setExpandPanel(!expandPanel)}
           className={`
             flex items-center justify-center
-            ${expandPanel ? 'w-full mb-2' : 'w-12 h-12'}
+            ${expandPanel ? 'w-full mb-1.5 py-1 text-xs md:text-sm' : 'w-10 h-10 md:w-12 md:h-12'}
             rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-900
             transition-colors duration-200
-            text-lg cursor-pointer font-bold flex-shrink-0
+            text-sm md:text-lg cursor-pointer font-bold flex-shrink-0
           `}
           aria-label="切換圖層面板"
         >
@@ -295,12 +295,12 @@ export default function MapView({ onStartTour }) {
 
         {expandPanel && (
           <>
-            <h3 className="text-base font-bold mb-3 tracking-wide text-blue-900 flex-shrink-0">
+            <h3 className="text-xs md:text-base font-bold mb-2 md:mb-3 tracking-wide text-blue-900 flex-shrink-0">
               圖層控制
             </h3>
 
             {/* Scrollable Body */}
-            <div className="flex-1 overflow-y-auto pr-1 select-none space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+            <div className="flex-1 overflow-y-auto pr-1 select-none space-y-3 md:space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full text-xs">
               {/* Route toggles */}
               <div id="tour-route-toggles" className="w-full">
                 <div className="space-y-2 mb-4">
@@ -458,22 +458,22 @@ export default function MapView({ onStartTour }) {
             </div>
 
             {/* Fixed Footer */}
-            <div className="mt-3 pt-3 border-t border-slate-200 flex-shrink-0">
+            <div className="mt-2 pt-2 md:mt-3 md:pt-3 border-t border-slate-200 flex-shrink-0">
               <button
                 onClick={() => {
                   setIsAddMarkerMode(!isAddMarkerMode);
                   if (newMarkerPos) setNewMarkerPos(null);
                 }}
                 className={`
-                  w-full py-2.5 rounded-lg font-bold text-sm transition-all
-                  flex items-center justify-center gap-2
+                  w-full py-1.5 md:py-2.5 rounded-lg font-bold text-xs md:text-sm transition-all
+                  flex items-center justify-center gap-1.5 md:gap-2
                   ${isAddMarkerMode
                     ? 'bg-blue-600 text-white shadow-md'
                     : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}
                 `}
               >
                 {isAddMarkerMode ? (
-                  <><span>🎯</span> 點擊地圖新增標記 (點此取消)</>
+                  <><span>🎯</span> <span className="text-[10px] md:text-xs">點擊地圖新增標記</span></>
                 ) : (
                   <><span>📍</span> 自由新增地景標記</>
                 )}

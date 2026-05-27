@@ -25,6 +25,15 @@ export default function HomePage() {
   const [fontSize, setFontSize] = useState('medium'); // 'small', 'medium', 'large'
   const [showLanding, setShowLanding] = useState(true);
 
+  // 左側選單收合狀態（手機版預設關閉，桌機版預設開啟）
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+      setIsSidebarOpen(true);
+    }
+  }, []);
+
   // 動態更新日誌狀態
   const [changelog, setChangelog] = useState([]);
   const [loadingChangelog, setLoadingChangelog] = useState(false);
@@ -257,12 +266,20 @@ export default function HomePage() {
       {/* ── Top Header ── */}
       <header className="z-[3000] w-full h-16 bg-slate-950/90 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-4 md:px-6 shadow-xl flex-shrink-0">
         <div className="flex items-center gap-3">
+          {/* 手機版側欄收合切換按鈕 */}
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="md:hidden p-2 text-slate-300 hover:text-white bg-white/5 border border-white/10 rounded-xl active:scale-95 transition-all cursor-pointer"
+            title="切換選單"
+          >
+            ☰
+          </button>
           <div className="flex items-center">
-            <h1 className="bg-gradient-to-r from-blue-400 via-cyan-400 to-sky-300 bg-clip-text text-transparent text-base md:text-xl font-black tracking-widest leading-none">
+            <h1 className="bg-gradient-to-r from-blue-400 via-cyan-400 to-sky-300 bg-clip-text text-transparent text-sm md:text-xl font-black tracking-widest leading-none flex-shrink-0">
               信水義河
             </h1>
-            <span className="hidden sm:block h-5 w-px bg-white/20 mx-3" />
-            <p className="hidden sm:block text-slate-400 text-xs md:text-sm font-semibold tracking-wider font-sans">
+            <span className="h-4 md:h-5 w-px bg-white/20 mx-2 md:mx-3 flex-shrink-0" />
+            <p className="text-slate-400 text-[10px] md:text-sm font-semibold tracking-wider font-sans">
               信義社大 水文導覽地圖
             </p>
           </div>
@@ -282,68 +299,76 @@ export default function HomePage() {
       {/* ── Main Body (Sidebar + Map Content) ── */}
       <main className="flex-1 w-full flex overflow-hidden relative">
         {/* ── Left Sidebar ── */}
-        <nav id="sidebar-navigation" className="z-[2000] w-24 md:w-32 bg-slate-900/95 backdrop-blur-md border-r border-white/10 flex flex-col items-center py-6 gap-4 shadow-2xl">
-          <div className="flex flex-col items-center justify-center p-3 mb-2 flex-shrink-0">
-            <div className="w-10 h-10 rounded-full bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-xl shadow-inner shadow-blue-500/5 animate-pulse">
-              🌊
-            </div>
-          </div>
+        <nav 
+          id="sidebar-navigation" 
+          className={`
+            z-[2000] bg-slate-900/95 backdrop-blur-md border-r border-white/10 
+            flex flex-col items-center shadow-2xl transition-all duration-300 ease-in-out
+            ${isSidebarOpen ? 'w-20 py-4 px-2 gap-3' : 'w-0 p-0 border-r-0 overflow-hidden gap-0'}
+            md:w-32 md:py-6 md:px-3 md:gap-4 md:flex
+          `}
+        >
         
         <button 
           onClick={() => setActiveTab('map')}
-          className={`group relative p-3 rounded-xl transition-all duration-300 text-sm font-semibold ${activeTab === 'map' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:bg-white/5'}`}
+          className={`w-full group relative py-2.5 rounded-xl transition-all duration-300 text-xs md:text-sm font-semibold flex flex-col items-center justify-center gap-1 mt-2 md:mt-0 ${activeTab === 'map' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:bg-white/5'}`}
           title="地圖 (Map)"
         >
-          <span>🗺️ 地圖</span>
+          <span className="text-base md:text-lg">🗺️</span>
+          <span className="text-[10px] md:text-xs md:inline block font-sans tracking-wider"><span className="hidden md:inline">地圖</span></span>
           <span className="absolute left-full ml-4 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">Map</span>
         </button>
 
         <button 
           onClick={() => setActiveTab('layers')}
-          className={`group relative p-3 rounded-xl transition-all duration-300 text-sm font-semibold ${activeTab === 'layers' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:bg-white/5'}`}
+          className={`w-full group relative py-2.5 rounded-xl transition-all duration-300 text-xs md:text-sm font-semibold flex flex-col items-center justify-center gap-1 ${activeTab === 'layers' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:bg-white/5'}`}
           title="圖層說明 (Layers)"
         >
-          <span>📊 圖層說明</span>
+          <span className="text-base md:text-lg">📊</span>
+          <span className="text-[10px] md:text-xs md:inline block font-sans tracking-wider"><span className="hidden md:inline">圖層說明</span></span>
           <span className="absolute left-full ml-4 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">Layers</span>
         </button>
 
         <button 
           onClick={() => setActiveTab('form')}
-          className={`group relative p-3 rounded-xl transition-all duration-300 text-sm font-semibold ${activeTab === 'form' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:bg-white/5'}`}
+          className={`w-full group relative py-2.5 rounded-xl transition-all duration-300 text-xs md:text-sm font-semibold flex flex-col items-center justify-center gap-1 ${activeTab === 'form' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:bg-white/5'}`}
           title="回饋表單 (Feedback)"
         >
-          <span>📝 回饋表單</span>
+          <span className="text-base md:text-lg">📝</span>
+          <span className="text-[10px] md:text-xs md:inline block font-sans tracking-wider"><span className="hidden md:inline">回饋表單</span></span>
           <span className="absolute left-full ml-4 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">Feedback</span>
         </button>
 
         <button 
           onClick={() => setActiveTab('history')}
-          className={`group relative p-3 rounded-xl transition-all duration-300 text-sm font-semibold ${activeTab === 'history' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:bg-white/5'}`}
+          className={`w-full group relative py-2.5 rounded-xl transition-all duration-300 text-xs md:text-sm font-semibold flex flex-col items-center justify-center gap-1 ${activeTab === 'history' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:bg-white/5'}`}
           title="歷史故事 (History)"
         >
-          <span>📚 歷史故事</span>
+          <span className="text-base md:text-lg">📚</span>
+          <span className="text-[10px] md:text-xs md:inline block font-sans tracking-wider"><span className="hidden md:inline">歷史故事</span></span>
           <span className="absolute left-full ml-4 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">History</span>
         </button>
 
-        <div className="mt-auto opacity-20 text-[10px] font-mono -rotate-90 whitespace-nowrap tracking-[0.3em] text-white">XINYI_MAP</div>
+        <div className="mt-auto opacity-20 text-[10px] font-mono -rotate-90 whitespace-nowrap tracking-[0.3em] text-white hidden md:block">XINYI_MAP</div>
 
         {/* Changelog Button */}
-        <div className="w-full px-2 pt-3">
+        <div className="w-full px-1 pt-3 flex-shrink-0">
           <button
             onClick={() => setActiveTab('changelog')}
-            className={`w-full py-1.5 px-1 rounded-lg text-[10px] font-semibold transition-all duration-200 border ${
+            className={`w-full py-1.5 px-0.5 rounded-lg text-[9px] md:text-[10px] font-semibold transition-all duration-200 border flex flex-col items-center justify-center gap-0.5 ${
               activeTab === 'changelog'
                 ? 'bg-violet-600/80 text-violet-100 border-violet-400/50 shadow-lg shadow-violet-500/20'
                 : 'bg-white/5 text-white/40 border-white/10 hover:bg-white/10 hover:text-white/70'
             }`}
             title="查看版本更新日誌"
           >
-            📜 更新日誌
+            <span>📜</span>
+            <span className="hidden md:inline">更新日誌</span>
           </button>
         </div>
 
-        {/* Font Size Selector */}
-        <div className="pt-3 border-t border-white/10 flex flex-col gap-2 w-full px-2">
+        {/* Font Size Selector (僅桌機版顯示) */}
+        <div className="pt-3 border-t border-white/10 flex-col gap-2 w-full px-2 flex-shrink-0 hidden md:flex">
           <p className="text-[10px] text-white/50 text-center font-semibold">字體大小</p>
           <div className="flex gap-1 justify-center">
             <button
