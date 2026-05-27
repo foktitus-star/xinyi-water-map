@@ -134,7 +134,7 @@ export default function AdminPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+      <div className="h-screen overflow-y-auto bg-slate-950 flex flex-col items-center justify-center p-4">
         {/* Glassmorphism Card */}
         <div className="w-full max-w-md bg-slate-900/60 backdrop-blur-xl border border-white/10 p-8 rounded-3xl shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 via-cyan-400 to-violet-500" />
@@ -193,7 +193,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="h-screen overflow-hidden bg-slate-950 text-slate-100 flex flex-col font-sans">
       {/* Header */}
       <header className="w-full bg-slate-900/80 backdrop-blur-md border-b border-white/10 h-16 px-6 flex items-center justify-between shadow-md flex-shrink-0">
         <div className="flex items-center gap-4">
