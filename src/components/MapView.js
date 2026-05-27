@@ -96,6 +96,27 @@ function AddMarkerInteraction({ isAddMode, onAddMarker }) {
   return null;
 }
 
+// Custom DivIcon for approved community markers (Warm orange/cream theme)
+const communityIcon = typeof window !== 'undefined' ? L.divIcon({
+  className: 'community-div-icon',
+  html: `<div style="
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: #fffbeb;
+    border: 2px solid #ea580c;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+    font-size: 14px;
+    line-height: 1;
+  ">🧡</div>`,
+  iconSize: [28, 28],
+  iconAnchor: [14, 28],
+  popupAnchor: [0, -28],
+}) : null;
+
 // ── Main map component ─────────────────────────────────────
 export default function MapView({ onStartTour }) {
   const [visibility, setVisibility] = useState(
@@ -147,6 +168,25 @@ export default function MapView({ onStartTour }) {
   // Add Free Marker state
   const [isAddMarkerMode, setIsAddMarkerMode] = useState(false);
   const [newMarkerPos, setNewMarkerPos] = useState(null);
+
+  // 社群審核通過地景標記狀態
+  const [communityMarkers, setCommunityMarkers] = useState([]);
+
+  // 載入審核通過的社群地景
+  useEffect(() => {
+    async function loadCommunityMarkers() {
+      try {
+        const res = await fetch('/api/feedback-list');
+        if (res.ok) {
+          const data = await res.json();
+          setCommunityMarkers(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        console.error('Failed to load community markers:', err);
+      }
+    }
+    loadCommunityMarkers();
+  }, [newMarkerPos]);
 
   const handleAddMarker = (latlng) => {
     setNewMarkerPos(latlng);
@@ -263,6 +303,67 @@ export default function MapView({ onStartTour }) {
             </Popup>
           </Marker>
         )}
+
+        {/* ── Approved Community Markers ── */}
+        {communityMarkers.map((marker) => (
+          <Marker 
+            key={marker.id} 
+            position={[parseFloat(marker.lat), parseFloat(marker.lng)]}
+            icon={communityIcon}
+          >
+            <Popup className="feedback-popup" minWidth={280} maxWidth={340}>
+              <div className="p-2 font-sans text-slate-800 animate-fade-in">
+                {/* Custom Popup Header */}
+                <div className="border-b border-slate-200 pb-2 mb-2">
+                  <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                    <span className="text-[10px] bg-amber-500/10 text-amber-700 border border-amber-500/20 px-2.5 py-0.5 rounded-full font-bold">
+                      👥 社群走讀地標
+                    </span>
+                    {marker.tags && marker.tags.split(',').map(tag => (
+                      <span key={tag} className="text-[9px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-semibold">
+                        #{tag.trim()}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="text-[9px] text-slate-400 font-mono">
+                    踏查時間：{new Date(marker.timestamp).toLocaleDateString('zh-TW')}
+                  </div>
+                </div>
+
+                {/* Photo if present */}
+                {marker.photo_url && (
+                  <div className="rounded-lg overflow-hidden border border-slate-100 mb-2 max-h-36 flex items-center justify-center bg-slate-50">
+                    <img 
+                      src={marker.photo_url} 
+                      alt="Community geolandscape" 
+                      className="object-contain w-full h-full max-h-36"
+                      onError={(e) => {
+                        e.target.style.display = 'none'; // Hide if failed
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* User Story Description */}
+                <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap mb-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100 font-sans">
+                  {marker.description}
+                </p>
+
+                {/* AI Summary card if present */}
+                {marker.ai_summary && (
+                  <div className="bg-violet-950/5 border border-violet-500/10 rounded-lg p-2.5 text-[10px] text-violet-700">
+                    <div className="font-bold flex items-center gap-1 mb-1 text-violet-800">
+                      <span>✨</span> <span>AI 地景故事摘要：</span>
+                    </div>
+                    <p className="leading-relaxed font-medium">
+                      {marker.ai_summary}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </Popup>
+          </Marker>
+        ))}
 
       </MapContainer>
 

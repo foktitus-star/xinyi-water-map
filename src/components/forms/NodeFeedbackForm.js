@@ -169,10 +169,7 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
 
     // 從原始檔案提取 EXIF 資訊（在壓縮前讀取，因為壓縮會移除 EXIF）
     try {
-      const exifData = await exifr.parse(file, {
-        pick: ['DateTimeOriginal', 'CreateDate', 'GPSLatitude', 'GPSLongitude', 'latitude', 'longitude', 'Make', 'Model'],
-        gps: true,
-      });
+      const exifData = await exifr.parse(file);
       if (exifData) {
         const exifResult = {};
         // GPS 座標（exifr 自動轉換為十進位格式）
@@ -300,7 +297,9 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
 
     setIsSubmitting(true);
 
+    const feedbackId = "node_" + new Date().getTime() + "_" + Math.random().toString(36).substr(2, 5);
     const payload = {
+      id: feedbackId,
       formType: 'node_feedback',
       timestamp: new Date().toISOString(),
       lat,
