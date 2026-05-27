@@ -25,14 +25,8 @@ export default function HomePage() {
   const [fontSize, setFontSize] = useState('medium'); // 'small', 'medium', 'large'
   const [showLanding, setShowLanding] = useState(true);
 
-  // 左側選單收合狀態（手機版預設關閉，桌機版預設開啟）
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.innerWidth >= 768) {
-      setIsSidebarOpen(true);
-    }
-  }, []);
+  // 左側選單收合狀態（預設開啟，使用者可點擊 ☰ 按鈕進行收合）
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // 動態更新日誌狀態
   const [changelog, setChangelog] = useState([]);
@@ -315,7 +309,7 @@ export default function HomePage() {
           title="地圖 (Map)"
         >
           <span className="text-base md:text-lg">🗺️</span>
-          <span className="text-[10px] md:text-xs md:inline block font-sans tracking-wider"><span className="hidden md:inline">地圖</span></span>
+          <span className="text-[9px] md:text-xs font-sans tracking-wider block">地圖</span>
           <span className="absolute left-full ml-4 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">Map</span>
         </button>
 
@@ -325,7 +319,7 @@ export default function HomePage() {
           title="圖層說明 (Layers)"
         >
           <span className="text-base md:text-lg">📊</span>
-          <span className="text-[10px] md:text-xs md:inline block font-sans tracking-wider"><span className="hidden md:inline">圖層說明</span></span>
+          <span className="text-[9px] md:text-xs font-sans tracking-wider block">圖層說明</span>
           <span className="absolute left-full ml-4 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">Layers</span>
         </button>
 
@@ -335,7 +329,7 @@ export default function HomePage() {
           title="回饋表單 (Feedback)"
         >
           <span className="text-base md:text-lg">📝</span>
-          <span className="text-[10px] md:text-xs md:inline block font-sans tracking-wider"><span className="hidden md:inline">回饋表單</span></span>
+          <span className="text-[9px] md:text-xs font-sans tracking-wider block">回饋表單</span>
           <span className="absolute left-full ml-4 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">Feedback</span>
         </button>
 
@@ -345,7 +339,7 @@ export default function HomePage() {
           title="歷史故事 (History)"
         >
           <span className="text-base md:text-lg">📚</span>
-          <span className="text-[10px] md:text-xs md:inline block font-sans tracking-wider"><span className="hidden md:inline">歷史故事</span></span>
+          <span className="text-[9px] md:text-xs font-sans tracking-wider block">歷史故事</span>
           <span className="absolute left-full ml-4 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">History</span>
         </button>
 
@@ -363,7 +357,7 @@ export default function HomePage() {
             title="查看版本更新日誌"
           >
             <span>📜</span>
-            <span className="hidden md:inline">更新日誌</span>
+            <span className="text-[9px] md:text-[10px] font-sans block">更新日誌</span>
           </button>
         </div>
 

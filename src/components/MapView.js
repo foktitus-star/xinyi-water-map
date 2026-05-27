@@ -274,7 +274,7 @@ export default function MapView({ onStartTour }) {
           border border-blue-900/10 rounded-2xl
           shadow-xl text-slate-800
           transition-all duration-300 ease-in-out
-          ${expandPanel ? 'w-60 md:w-72 h-auto max-h-[50dvh] md:h-[600px] md:max-h-[calc(100dvh-32px)] p-3 md:p-4 flex flex-col' : 'w-10 h-10 md:w-12 md:h-12 p-0 overflow-hidden'}
+          ${expandPanel ? 'w-60 md:w-72 h-auto max-h-[65dvh] md:h-[600px] md:max-h-[calc(100dvh-32px)] p-3 md:p-4 flex flex-col' : 'w-10 h-10 md:w-12 md:h-12 p-0 overflow-hidden'}
         `}
       >
         {/* Toggle button */}
@@ -494,12 +494,12 @@ export default function MapView({ onStartTour }) {
         onClick={handleLocate}
         disabled={locating}
         className={`
-          absolute top-[72px] right-3 z-[1000]
-          w-12 h-12 rounded-2xl
+          absolute top-[64px] md:top-[72px] right-3 z-[1000]
+          w-10 h-10 md:w-12 md:h-12 rounded-2xl
           bg-white/95 backdrop-blur-md
           border border-blue-900/10 shadow-lg
           flex items-center justify-center
-          text-2xl transition-all duration-200
+          text-sm md:text-lg transition-all duration-200
           hover:bg-blue-50 active:scale-95
           ${locating ? 'animate-pulse text-blue-400' : 'text-blue-900'}
         `}
