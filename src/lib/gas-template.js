@@ -116,7 +116,7 @@ function handleUpdateStatus(sheet, payload) {
   }
   
   // 更新狀態單格
-  sheet.getCell(foundRowIdx, statusColIdx + 1).setValue(newStatus);
+  sheet.getRange(foundRowIdx, statusColIdx + 1).setValue(newStatus);
   
   return jsonResponse({ success: true, id: rowId, status: newStatus });
 }
