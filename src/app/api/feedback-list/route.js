@@ -16,6 +16,7 @@ export async function GET() {
       headers: {
         'Accept': 'application/json',
       },
+      redirect: 'follow', // 確保跟隨 Google Apps Script 的 302 重定向
       // 確保不被快取影響，利於審批後即時呈現
       next: { revalidate: 0 }
     });
