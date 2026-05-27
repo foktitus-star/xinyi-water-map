@@ -41,7 +41,12 @@ export default function AdminPage() {
         if (res.status === 401) {
           throw new Error('密碼錯誤，請重新輸入。');
         } else {
-          throw new Error('伺服器連線失敗。');
+          try {
+            const errData = await res.json();
+            throw new Error(errData.error || errData.details || `伺服器連線失敗 (HTTP ${res.status})`);
+          } catch (e) {
+            throw new Error(`伺服器連線失敗 (HTTP ${res.status})`);
+          }
         }
       }
 
