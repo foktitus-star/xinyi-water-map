@@ -171,6 +171,7 @@ export default function MapView({ onStartTour }) {
 
   // 社群審核通過地景標記狀態
   const [communityMarkers, setCommunityMarkers] = useState([]);
+  const [showCommunityMarkers, setShowCommunityMarkers] = useState(true);
 
   // 載入審核通過的社群地景
   useEffect(() => {
@@ -305,7 +306,7 @@ export default function MapView({ onStartTour }) {
         )}
 
         {/* ── Approved Community Markers ── */}
-        {communityMarkers.map((marker) => (
+        {showCommunityMarkers && communityMarkers.map((marker) => (
           <Marker 
             key={marker.id} 
             position={[parseFloat(marker.lat), parseFloat(marker.lng)]}
@@ -457,6 +458,21 @@ export default function MapView({ onStartTour }) {
               {/* Open Data toggles */}
               <div id="tour-open-data-toggles" className="w-full">
                 <div className="space-y-2 mb-4 pt-3 border-t border-slate-200">
+                  {/* 民眾走讀回饋圖層 */}
+                  <div className="flex items-center justify-between gap-2 hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors w-full">
+                    <label
+                      className="flex items-center gap-3 cursor-pointer flex-1"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={showCommunityMarkers}
+                        onChange={() => setShowCommunityMarkers(!showCommunityMarkers)}
+                        className="w-5 h-5 rounded accent-[#ea580c] cursor-pointer"
+                      />
+                      <span className="text-sm leading-tight text-slate-700 font-semibold text-orange-700">🧡 民眾走讀回饋</span>
+                    </label>
+                    <InfoTooltip id="community-markers" />
+                  </div>
                   <div className="flex items-center justify-between gap-2 hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors w-full">
                     <label
                       className="flex items-center gap-3 cursor-pointer flex-1"
