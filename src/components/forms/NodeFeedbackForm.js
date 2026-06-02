@@ -16,6 +16,7 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
 
   // EXIF 照片資訊狀態
   const [photoExif, setPhotoExif] = useState(null);
+  const [stripExifGps, setStripExifGps] = useState(false); // 使用者選擇是否移除 EXIF GPS
   const [isDragOver, setIsDragOver] = useState(false);
 
   // AI 圖片轉譯狀態
@@ -341,7 +342,9 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
       photo_filename: photoFilename,
       ai_summary: aiSummary.trim(),
       is_voice: isVoiceUsed,
-      photo_exif: photoExif || null
+      photo_exif: stripExifGps 
+        ? (photoExif ? { ...photoExif, latitude: '[已移除]', longitude: '[已移除]', gps_stripped: true } : null)
+        : (photoExif || null)
     };
 
     try {
@@ -592,6 +595,7 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
                       setPhotoBase64(null); 
                       setPhotoFilename(''); 
                       setPhotoExif(null);
+                      setStripExifGps(false); // Reset EXIF GPS toggle
                       setImageDescribeError('');
                     }, 50);
                   }}
@@ -616,6 +620,36 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
               onChange={handleFileChange}
             />
           </div>
+
+          {/* EXIF GPS 隱私控制 */}
+          {photoExif && photoExif.latitude && (
+            <div className="mt-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-start gap-2">
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 mt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={stripExifGps}
+                    onChange={() => {
+                      setTimeout(() => {
+                        setStripExifGps(prev => !prev);
+                      }, 50);
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-slate-300 peer-focus:ring-2 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                </label>
+                <div className="flex-1">
+                  <p className="text-[11px] font-bold text-amber-800">
+                    🔒 移除照片 GPS 定位資料
+                  </p>
+                  <p className="text-[10px] text-amber-600 leading-relaxed mt-0.5">
+                    偵測到照片含有 GPS 座標（{photoExif.latitude}, {photoExif.longitude}）。
+                    開啟此選項將在送出時移除 EXIF 中的 GPS 資料，僅保留您在地圖上標記的位置。
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* AI 圖片轉譯按鈕 */}
           {photoBase64 && (

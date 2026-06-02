@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 
@@ -280,6 +281,13 @@ export default function HomePage() {
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">
+          <Link
+            href="/privacy"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-300 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-all duration-300 cursor-pointer shadow-md active:scale-95"
+          >
+            <span>🛡️</span>
+            <span className="hidden xs:inline">隱私聲明</span>
+          </Link>
           <button
             onClick={() => setShowLanding(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-300 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-all duration-300 cursor-pointer shadow-md active:scale-95"
@@ -782,7 +790,7 @@ export default function HomePage() {
 
               {/* Footer */}
               <div className="mt-12 pt-6 border-t border-white/8 flex items-center justify-between">
-                <p className="text-white/25 text-[11px]">信義社大 水文導覽互動地圖</p>
+                <p className="text-white/25 text-[11px]">信水義河 · 臺大城鄉所 × 信義社大</p>
                 <button
                   onClick={() => setActiveTab('map')}
                   className="px-5 py-2 rounded-xl text-sm font-semibold text-white/70 hover:text-white transition-all duration-200 border border-white/10 hover:border-violet-400/40 hover:bg-violet-500/10"
@@ -812,7 +820,7 @@ export default function HomePage() {
             {/* Hero Header */}
             <div className="text-center flex flex-col items-center gap-4 max-w-2xl">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-slate-600 bg-white/60 border border-slate-200 shadow-sm animate-pulse">
-                ✨ 信義社區大學 · 水文走讀探索專案
+                ✨ 臺大城鄉所「智慧城市與數位民主」課程團隊（與信義社區大學合作）
               </span>
               <h2 className="font-sans font-extrabold text-5xl md:text-6xl text-slate-800 tracking-widest leading-tight mt-2">
                 信水義河
@@ -922,6 +930,20 @@ export default function HomePage() {
               </div>
 
             </div>
+
+            {/* Landing page footer */}
+            <footer className="w-full text-center mt-8 pb-4 flex flex-col items-center gap-3">
+              <div className="h-px w-24 bg-slate-200" />
+              <p className="text-xs text-slate-500 font-medium">
+                製作單位：國立臺灣大學建築與城鄉研究所「智慧城市與數位民主」課程團隊（與信義社區大學合作）
+              </p>
+              <div className="flex gap-4 items-center justify-center text-xs">
+                <Link href="/privacy" className="text-blue-600 hover:text-blue-500 font-semibold transition-colors flex items-center gap-1">
+                  <span>🛡️</span> <span>隱私聲明與資料使用說明</span>
+                </Link>
+              </div>
+            </footer>
+
           </div>
         </div>
       )}

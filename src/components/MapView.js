@@ -325,6 +325,11 @@ export default function MapView({ onStartTour }) {
                         #{tag.trim()}
                       </span>
                     ))}
+                    {marker.ai_summary && (
+                      <span className="text-[9px] bg-violet-100 text-violet-700 border border-violet-200 px-2 py-0.5 rounded-full font-bold flex items-center gap-0.5">
+                        ✨ AI 輔助潤飾
+                      </span>
+                    )}
                   </div>
                   <div className="text-[9px] text-slate-400 font-mono">
                     踏查時間：{new Date(marker.timestamp).toLocaleDateString('zh-TW')}
@@ -354,7 +359,7 @@ export default function MapView({ onStartTour }) {
                 {marker.ai_summary && (
                   <div className="bg-violet-950/5 border border-violet-500/10 rounded-lg p-2.5 text-[10px] text-violet-700">
                     <div className="font-bold flex items-center gap-1 mb-1 text-violet-800">
-                      <span>✨</span> <span>AI 地景故事摘要：</span>
+                      <span>✨</span> <span>AI 輔助潤飾（本段文字經 AI 協助生成）：</span>
                     </div>
                     <p className="leading-relaxed font-medium">
                       {marker.ai_summary}
