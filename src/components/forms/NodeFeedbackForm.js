@@ -33,6 +33,11 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
   const [summarizeError, setSummarizeError] = useState('');
   const recognitionRef = useRef(null);
 
+  // 敏感內容（人臉）自動偵測狀態
+  const [isDetectingFaces, setIsDetectingFaces] = useState(false);
+  const [faceDetectionWarning, setFaceDetectionWarning] = useState(false);
+  const [detectedFaces, setDetectedFaces] = useState([]);
+
   // 偵測瀏覽器語音支援度
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -167,6 +172,9 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
     setPhotoFilename(file.name);
     setPhotoExif(null);
     setImageDescribeError('');
+    setIsDetectingFaces(false);
+    setFaceDetectionWarning(false);
+    setDetectedFaces([]);
 
     // 從原始檔案提取 EXIF 資訊（在壓縮前讀取，因為壓縮會移除 EXIF）
     try {
@@ -230,6 +238,7 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
         // Compress to JPEG with 0.7 quality
         const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
         setPhotoBase64(dataUrl);
+        detectFacesAndPrompt(dataUrl);
       };
       img.src = event.target.result;
     };
@@ -264,6 +273,83 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
     } else {
       alert('請拖移照片檔案進行上傳！');
     }
+  };
+
+  // 敏感內容偵測：非同步呼叫 Gemini 進行人臉偵測
+  const detectFacesAndPrompt = async (dataUrl) => {
+    setIsDetectingFaces(true);
+    setFaceDetectionWarning(false);
+    setDetectedFaces([]);
+
+    try {
+      const response = await fetch('/api/detect-faces', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: dataUrl })
+      });
+      const data = await response.json();
+      if (data.success && data.hasFaces && data.faces && data.faces.length > 0) {
+        setDetectedFaces(data.faces);
+        setFaceDetectionWarning(true);
+      }
+    } catch (err) {
+      console.warn('Face detection failed (non-critical):', err.message);
+    } finally {
+      setIsDetectingFaces(false);
+    }
+  };
+
+  // 馬賽克局部處理：在 canvas 上將偵測到的人臉區域像素化
+  const handleApplyBlur = () => {
+    if (!photoBase64 || detectedFaces.length === 0) return;
+
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+
+      // 關閉平滑以達到馬賽克效果
+      ctx.imageSmoothingEnabled = false;
+
+      detectedFaces.forEach(face => {
+        if (!face.box_2d) return;
+        const [ymin_raw, xmin_raw, ymax_raw, xmax_raw] = face.box_2d;
+        
+        // 將 [0, 1000] 區間的比例坐標換算為 canvas 實際尺寸
+        const ymin = ymin_raw / 1000;
+        const xmin = xmin_raw / 1000;
+        const ymax = ymax_raw / 1000;
+        const xmax = xmax_raw / 1000;
+
+        const x = xmin * canvas.width;
+        const y = ymin * canvas.height;
+        const w = (xmax - xmin) * canvas.width;
+        const h = (ymax - ymin) * canvas.height;
+
+        // 計算適當的馬賽克格點大小（依據人臉區域大小動態調整）
+        const size = Math.max(8, Math.round(Math.min(w, h) / 6));
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = Math.max(1, w / size);
+        tempCanvas.height = Math.max(1, h / size);
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.imageSmoothingEnabled = false;
+
+        // 縮小繪製到暫存 canvas
+        tempCtx.drawImage(canvas, x, y, w, h, 0, 0, tempCanvas.width, tempCanvas.height);
+        // 放大繪製回原畫布，形成粗顆粒馬賽克
+        ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, x, y, w, h);
+      });
+
+      // 輸出新的馬賽克照片
+      const blurredDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      setPhotoBase64(blurredDataUrl);
+      setFaceDetectionWarning(false);
+      setDetectedFaces([]);
+    };
+    img.src = photoBase64;
   };
 
   // AI 圖片轉譯：將照片送至 Gemini 多模態 API 進行文字辨識與場景描述
@@ -597,6 +683,9 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
                       setPhotoExif(null);
                       setStripExifGps(false); // Reset EXIF GPS toggle
                       setImageDescribeError('');
+                      setIsDetectingFaces(false);
+                      setFaceDetectionWarning(false);
+                      setDetectedFaces([]);
                     }, 50);
                   }}
                   className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs shadow-md cursor-pointer"
@@ -620,6 +709,52 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
               onChange={handleFileChange}
             />
           </div>
+
+          {/* 敏感內容 (人臉) 偵測提示 */}
+          {isDetectingFaces && (
+            <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+              <div className="inline-block w-3.5 h-3.5 border-2 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
+              <p className="text-[10px] text-blue-700 font-semibold">正在自動偵測敏感內容 (人臉)...</p>
+            </div>
+          )}
+
+          {faceDetectionWarning && detectedFaces.length > 0 && (
+            <div className="mt-2 p-2.5 bg-rose-50 border border-rose-200 rounded-lg" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-start gap-2">
+                <span className="text-sm flex-shrink-0 mt-0.5">⚠️</span>
+                <div className="flex-1">
+                  <p className="text-[11px] font-bold text-rose-800">
+                    偵測到照片中可能含有 {detectedFaces.length} 處人臉
+                  </p>
+                  <p className="text-[10px] text-rose-600 leading-relaxed mt-0.5">
+                    為保護他人隱私，建議在公開前將人臉進行模糊或馬賽克處理。
+                  </p>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleApplyBlur();
+                      }}
+                      className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded text-[10px] font-bold transition-colors cursor-pointer"
+                    >
+                      🧩 套用馬賽克處理
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFaceDetectionWarning(false);
+                      }}
+                      className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded text-[10px] font-medium transition-colors cursor-pointer"
+                    >
+                      忽略
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* EXIF GPS 隱私控制 */}
           {photoExif && photoExif.latitude && (
