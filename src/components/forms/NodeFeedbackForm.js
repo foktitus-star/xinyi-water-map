@@ -329,8 +329,8 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
         const w = (xmax - xmin) * canvas.width;
         const h = (ymax - ymin) * canvas.height;
 
-        // 計算適當的馬賽克格點大小（依據人臉區域大小動態調整）
-        const size = Math.max(8, Math.round(Math.min(w, h) / 6));
+        // 1. 將馬賽克格點大小調小，使馬賽克更精細 (由 6 比例提高到 14，更小格)
+        const size = Math.max(4, Math.round(Math.min(w, h) / 14));
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = Math.max(1, w / size);
         tempCanvas.height = Math.max(1, h / size);
@@ -339,8 +339,21 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
 
         // 縮小繪製到暫存 canvas
         tempCtx.drawImage(canvas, x, y, w, h, 0, 0, tempCanvas.width, tempCanvas.height);
-        // 放大繪製回原畫布，形成粗顆粒馬賽克
+        
+        // 2. 使用橢圓剪裁路徑，只對人臉部分進行馬賽克處理，不要遮擋到背景與肩膀
+        ctx.save();
+        ctx.beginPath();
+        const centerX = x + w / 2;
+        const centerY = y + h / 2;
+        const radiusX = w / 2;
+        const radiusY = h / 2;
+        ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
+        ctx.clip();
+
+        // 放大繪製回原畫布，僅繪製在橢圓範圍內
         ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, x, y, w, h);
+        
+        ctx.restore();
       });
 
       // 輸出新的馬賽克照片
