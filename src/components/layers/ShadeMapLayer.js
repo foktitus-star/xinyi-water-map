@@ -69,22 +69,28 @@ export default function ShadeMapLayer({ show, apiKey, date, opacity = 0.6, showT
 
           const crownRadius = crownWidth / 2;
 
-          // Convert meters to lat/lng offsets around Taipei center (Latitude ~25.033)
-          // 1 deg Lat ~= 111,000m, 1 deg Lng ~= 100,500m
-          const latOffset = crownRadius / 111000;
-          const lngOffset = crownRadius / 100500;
+          // Generate an 8-sided regular polygon (octagon) to simulate a rounded tree crown
+          const numSides = 8;
+          const coordinates = [];
+          
+          for (let i = 0; i <= numSides; i++) {
+            const angle = (i * 2 * Math.PI) / numSides;
+            // Calculate offsets in meters
+            const dx = Math.cos(angle) * crownRadius; // east-west
+            const dy = Math.sin(angle) * crownRadius; // north-south
+
+            // Convert meters to lat/lng offsets around Taipei (Latitude ~25.033)
+            // 1 deg Lat ~= 111,000m, 1 deg Lng ~= 100,500m
+            const treeLng = lng + (dx / 100500);
+            const treeLat = lat + (dy / 111000);
+            coordinates.push([treeLng, treeLat]);
+          }
 
           return {
             type: 'Feature',
             geometry: {
               type: 'Polygon',
-              coordinates: [[
-                [lng - lngOffset, lat - latOffset],
-                [lng + lngOffset, lat - latOffset],
-                [lng + lngOffset, lat + latOffset],
-                [lng - lngOffset, lat + latOffset],
-                [lng - lngOffset, lat - latOffset]
-              ]]
+              coordinates: [coordinates]
             },
             properties: {
               height: height,
