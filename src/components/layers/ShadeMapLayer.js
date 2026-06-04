@@ -30,14 +30,49 @@ export default function ShadeMapLayer({ show, apiKey, date, opacity = 0.6, showT
             t.lng >= 121.532936 && t.lng <= 121.610527
         );
 
-        // Convert each tree coordinate to a small 4x4 meter square polygon to cast a shadow
-        const latOffset = 0.000015; // ~1.5 meters offset north/south
-        const lngOffset = 0.000015; // ~1.5 meters offset east/west
-
         const features = validTrees.map((t) => {
           const lat = parseFloat(t.lat);
           const lng = parseFloat(t.lng);
-          const height = parseFloat(t.TreeHeight) || 8.0; // Default tree height of 8 meters if missing
+          const height = parseFloat(t.TreeHeight) || 8.0; // Default tree height of 8 meters
+          const dbh = parseFloat(t.Diameter) || 20.0; // Default DBH of 20cm
+          const type = t.TreeType || '';
+
+          // 🌲 Forestry Allometric Equations to estimate Crown Width (in meters)
+          let crownWidth = 3.0; // Default 3 meters
+          if (
+            type.includes('榕') ||
+            type.includes('欒') ||
+            type.includes('茄苳') ||
+            type.includes('樟') ||
+            type.includes('楓') ||
+            type.includes('大葉桃花心木')
+          ) {
+            // Spreading broadleaf trees (wide crown)
+            crownWidth = 0.18 * dbh + 1.0;
+          } else if (
+            type.includes('千層') ||
+            type.includes('椰子') ||
+            type.includes('柏') ||
+            type.includes('杉') ||
+            type.includes('竹')
+          ) {
+            // Columnar/Coniferous trees (narrow crown)
+            crownWidth = 0.08 * dbh + 1.0;
+          } else {
+            // General urban trees
+            crownWidth = 0.13 * dbh + 1.2;
+          }
+
+          // Bound tree crown width between 2m and 12m, ensuring it does not exceed 1.2x tree height
+          crownWidth = Math.min(height * 1.2, crownWidth);
+          crownWidth = Math.max(2.0, Math.min(12.0, crownWidth));
+
+          const crownRadius = crownWidth / 2;
+
+          // Convert meters to lat/lng offsets around Taipei center (Latitude ~25.033)
+          // 1 deg Lat ~= 111,000m, 1 deg Lng ~= 100,500m
+          const latOffset = crownRadius / 111000;
+          const lngOffset = crownRadius / 100500;
 
           return {
             type: 'Feature',
@@ -53,7 +88,7 @@ export default function ShadeMapLayer({ show, apiKey, date, opacity = 0.6, showT
             },
             properties: {
               height: height,
-              name: t.TreeType || 'Street Tree'
+              name: type || 'Street Tree'
             }
           };
         });
