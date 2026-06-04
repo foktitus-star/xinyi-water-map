@@ -21,6 +21,7 @@ import TemperatureLayer, { TemperatureControl, useTemperatureLayer } from './lay
 import DataSourceControl from './layers/DataSourceControl';
 import NodeFeedbackForm from './forms/NodeFeedbackForm';
 import InfoTooltip from './layers/info-tooltip/InfoTooltip';
+import ShadeMapLayer from './layers/ShadeMapLayer';
 
 // Fix default icon issue in leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -34,6 +35,16 @@ import SatelliteLayer, { SatelliteControl, SATELLITE_MAPS } from './layers/Satel
 
 
 // ── helpers ────────────────────────────────────────────────
+/** Convert minutes since midnight to AM/PM Chinese time string */
+function formatMinutesToTimeStr(minutes) {
+  const hr = Math.floor(minutes / 60);
+  const min = minutes % 60;
+  const period = hr >= 12 ? '下午' : '上午';
+  const displayHr = hr > 12 ? hr - 12 : (hr === 0 ? 12 : hr);
+  const formattedMin = String(min).padStart(2, '0');
+  return `${period} ${String(displayHr).padStart(2, '0')}:${formattedMin}`;
+}
+
 /** Build a full polyline path from station coords + segment waypoints */
 function buildPolyline(route) {
   const stationMap = {};
@@ -129,6 +140,23 @@ export default function MapView({ onStartTour }) {
   const [showSidewalks, setShowSidewalks] = useState(false);
   const [showZoning, setShowZoning] = useState(false);
   const [zoningOpacity, setZoningOpacity] = useState(0.45);
+
+  // ShadeMap layer state
+  const [showShade, setShowShade] = useState(false);
+  const [shadeOpacity, setShadeOpacity] = useState(0.6);
+  const [shadeTimeMinutes, setShadeTimeMinutes] = useState(() => {
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    return Math.max(360, Math.min(1080, currentMinutes));
+  });
+
+  const shadeDate = useMemo(() => {
+    const d = new Date();
+    const hours = Math.floor(shadeTimeMinutes / 60);
+    const minutes = shadeTimeMinutes % 60;
+    d.setHours(hours, minutes, 0, 0);
+    return d;
+  }, [shadeTimeMinutes]);
 
   // Historical basemap state (null = none active)
   const [activeHistory, setActiveHistory] = useState('liugong1939');
@@ -272,6 +300,12 @@ export default function MapView({ onStartTour }) {
         <ZoningLayer showZoning={showZoning} opacity={zoningOpacity} />
         <ComfortLayer showTrees={showTrees} showSidewalks={showSidewalks} />
         <TemperatureLayer show={showTemperature} url={temperatureUrl} opacity={temperatureOpacity} />
+        <ShadeMapLayer
+          show={showShade}
+          apiKey={process.env.NEXT_PUBLIC_SHADEMAP_API_KEY}
+          date={shadeDate}
+          opacity={shadeOpacity}
+        />
 
         {routes.map((route, ri) =>
           visibility[ri] ? (
@@ -551,6 +585,82 @@ export default function MapView({ onStartTour }) {
                     opacity={temperatureOpacity}
                     onOpacityChange={setTemperatureOpacity}
                   />
+
+                  {/* ☀️ 即時日照陰影 */}
+                  <div className="flex flex-col mb-1 border-t border-slate-100 pt-2">
+                    <div className="flex items-center justify-between gap-2 hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors w-full">
+                      <label className="flex items-center gap-3 cursor-pointer flex-1">
+                        <input
+                          type="checkbox"
+                          checked={showShade}
+                          onChange={(e) => setShowShade(e.target.checked)}
+                          className="w-5 h-5 rounded accent-[#fbbf24] cursor-pointer"
+                        />
+                        <span className="text-sm leading-tight text-slate-700">
+                          ☀️ 即時日照陰影
+                        </span>
+                      </label>
+                      <InfoTooltip id="shademap" />
+                    </div>
+
+                    {/* Controls - visible only when showShade is active */}
+                    <div className={`
+                      flex flex-col gap-2 px-10 transition-all duration-300 ease-in-out
+                      ${showShade ? 'opacity-100 mt-1 mb-2' : 'h-0 opacity-0 overflow-hidden'}
+                    `}>
+                      {/* Opacity control */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-slate-500 w-12 flex-shrink-0">不透明度</span>
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.05"
+                          value={shadeOpacity}
+                          onChange={(e) => setShadeOpacity(parseFloat(e.target.value))}
+                          className="flex-1 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#fbbf24]"
+                        />
+                        <span className="text-[10px] font-mono font-bold text-slate-500 w-8 text-right">
+                          {Math.round(shadeOpacity * 100)}%
+                        </span>
+                      </div>
+
+                      {/* Time format display & Reset button */}
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1 select-none">
+                          🕒 {formatMinutesToTimeStr(shadeTimeMinutes)}
+                        </span>
+                        <button
+                          onClick={() => {
+                            const now = new Date();
+                            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+                            setShadeTimeMinutes(Math.max(360, Math.min(1080, currentMinutes)));
+                          }}
+                          className="text-[10px] px-2 py-0.5 rounded bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 transition-colors font-semibold cursor-pointer"
+                        >
+                          🔄 恢復目前時間
+                        </button>
+                      </div>
+
+                      {/* Time Slider */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-slate-400 font-mono select-none">06:00</span>
+                        <input
+                          type="range"
+                          min="360"
+                          max="1080"
+                          step="5"
+                          value={shadeTimeMinutes}
+                          onChange={(e) => setShadeTimeMinutes(parseInt(e.target.value, 10))}
+                          className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#d97706]"
+                          style={{
+                            background: 'linear-gradient(to right, #93c5fd, #fef08a, #818cf8)'
+                          }}
+                        />
+                        <span className="text-[10px] text-slate-400 font-mono select-none">18:00</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
