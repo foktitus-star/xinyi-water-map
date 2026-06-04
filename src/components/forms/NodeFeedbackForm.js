@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import exifr from 'exifr';
 import { useMap } from 'react-leaflet';
 
 const TAGS = ['歷史', '水源', '生態', '氣味', '地景', '其他'];
@@ -13,6 +14,150 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
   const [isSuccess, setIsSuccess] = useState(false);
   const fileInputRef = useRef(null);
 
+  // EXIF 照片資訊狀態
+  const [photoExif, setPhotoExif] = useState(null);
+  const [stripExifGps, setStripExifGps] = useState(false); // 使用者選擇是否移除 EXIF GPS
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  // AI 圖片轉譯狀態
+  const [isDescribingImage, setIsDescribingImage] = useState(false);
+  const [imageDescribeError, setImageDescribeError] = useState('');
+
+  // 語音與 AI 相關狀態
+  const [isListening, setIsListening] = useState(false);
+  const [isVoiceSupported, setIsVoiceSupported] = useState(false);
+  const [isVoiceUsed, setIsVoiceUsed] = useState(false);
+  const [aiSummary, setAiSummary] = useState('');
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const [showSummaryCard, setShowSummaryCard] = useState(false);
+  const [summarizeError, setSummarizeError] = useState('');
+  const recognitionRef = useRef(null);
+
+  // 敏感內容（人臉）自動偵測狀態
+  const [isDetectingFaces, setIsDetectingFaces] = useState(false);
+  const [faceDetectionWarning, setFaceDetectionWarning] = useState(false);
+  const [detectedFaces, setDetectedFaces] = useState([]);
+
+  // 偵測瀏覽器語音支援度
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        setIsVoiceSupported(true);
+      }
+    }
+  }, []);
+
+  // 啟動/停止語音辨識
+  const handleToggleListen = () => {
+    if (isListening) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      // 延遲更新狀態，避免 DOM 元素立即被 React 卸載導致 Leaflet 誤認點擊在彈出視窗外而將其關閉
+      setTimeout(() => {
+        setIsListening(false);
+      }, 50);
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    try {
+      const rec = new SpeechRecognition();
+      rec.continuous = true;
+      rec.interimResults = false; // 僅取最終結果，避免頻繁觸發 React 狀態更新造成輸入框卡頓
+      rec.lang = 'zh-TW';
+
+      rec.onstart = () => {
+        setIsListening(true);
+        setIsVoiceUsed(true);
+      };
+
+      rec.onend = () => {
+        // 延遲更新狀態確保 DOM 卸載不會與點擊事件冒泡衝突
+        setTimeout(() => {
+          setIsListening(false);
+        }, 50);
+      };
+
+      rec.onerror = (e) => {
+        console.error('Speech recognition error:', e.error);
+        setIsListening(false);
+        if (e.error === 'not-allowed') {
+          alert('請允許麥克風權限以進行語音輸入。');
+        }
+      };
+
+      rec.onresult = (e) => {
+        let finalTranscript = '';
+        for (let i = e.resultIndex; i < e.results.length; ++i) {
+          if (e.results[i].isFinal) {
+            finalTranscript += e.results[i][0].transcript;
+          }
+        }
+        
+        if (finalTranscript) {
+          setDescription(prev => {
+            const trimmed = prev.trim();
+            return trimmed ? `${trimmed} ${finalTranscript}` : finalTranscript;
+          });
+        }
+      };
+
+      recognitionRef.current = rec;
+      rec.start();
+    } catch (err) {
+      console.error('Failed to start speech recognition:', err);
+      setIsListening(false);
+    }
+  };
+
+  // 呼叫 Gemini AI 整理摘要
+  const handleAISummarize = async () => {
+    if (!description.trim()) {
+      alert('請先輸入或用語音說一段話，再進行 AI 整理。');
+      return;
+    }
+
+    setIsSummarizing(true);
+    setSummarizeError('');
+    setShowSummaryCard(true);
+
+    try {
+      const response = await fetch('/api/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: description })
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        let detailsMsg = '';
+        if (resData.details) {
+          try {
+            const parsed = JSON.parse(resData.details);
+            detailsMsg = parsed.error?.message || resData.details;
+          } catch (e) {
+            detailsMsg = resData.details;
+          }
+        }
+        const errorMsg = detailsMsg 
+          ? `${resData.error} (詳細原因：${detailsMsg})` 
+          : (resData.error || 'AI 整理服務暫時發生錯誤');
+        throw new Error(errorMsg);
+      }
+
+      setAiSummary(resData.summary);
+    } catch (err) {
+      console.error('Summarize error:', err);
+      setSummarizeError(err.message);
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
   const handleToggleTag = (tag) => {
     if (selectedTags.includes(tag)) {
       setSelectedTags(selectedTags.filter(t => t !== tag));
@@ -21,12 +166,48 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
     }
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
+  const processFile = async (file) => {
     if (!file) return;
 
     setPhotoFilename(file.name);
+    setPhotoExif(null);
+    setImageDescribeError('');
+    setIsDetectingFaces(false);
+    setFaceDetectionWarning(false);
+    setDetectedFaces([]);
 
+    // 從原始檔案提取 EXIF 資訊（在壓縮前讀取，因為壓縮會移除 EXIF）
+    try {
+      const exifData = await exifr.parse(file);
+      if (exifData) {
+        const exifResult = {};
+        // GPS 座標（exifr 自動轉換為十進位格式）
+        if (exifData.latitude && exifData.longitude) {
+          exifResult.latitude = Math.round(exifData.latitude * 1000000) / 1000000;
+          exifResult.longitude = Math.round(exifData.longitude * 1000000) / 1000000;
+        }
+        // 拍攝時間
+        const dateField = exifData.DateTimeOriginal || exifData.CreateDate;
+        if (dateField) {
+          exifResult.dateTime = dateField instanceof Date 
+            ? dateField.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
+            : String(dateField);
+        }
+        // 設備資訊
+        if (exifData.Make || exifData.Model) {
+          exifResult.device = [exifData.Make, exifData.Model].filter(Boolean).join(' ');
+        }
+        // 只有在有任何資訊時才設定
+        if (Object.keys(exifResult).length > 0) {
+          setPhotoExif(exifResult);
+        }
+      }
+    } catch (exifErr) {
+      // EXIF 讀取失敗時靜默處理，不影響照片上傳
+      console.warn('EXIF extraction failed (non-critical):', exifErr.message);
+    }
+
+    // 壓縮圖片並轉為 Base64
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
@@ -57,10 +238,185 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
         // Compress to JPEG with 0.7 quality
         const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
         setPhotoBase64(dataUrl);
+        detectFacesAndPrompt(dataUrl);
       };
       img.src = event.target.result;
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    processFile(file);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      processFile(file);
+    } else {
+      alert('請拖移照片檔案進行上傳！');
+    }
+  };
+
+  // 敏感內容偵測：非同步呼叫 Gemini 進行人臉偵測
+  const detectFacesAndPrompt = async (dataUrl) => {
+    setIsDetectingFaces(true);
+    setFaceDetectionWarning(false);
+    setDetectedFaces([]);
+
+    try {
+      const response = await fetch('/api/detect-faces', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: dataUrl })
+      });
+      const data = await response.json();
+      if (data.success && data.hasFaces && data.faces && data.faces.length > 0) {
+        setDetectedFaces(data.faces);
+        setFaceDetectionWarning(true);
+      }
+    } catch (err) {
+      console.warn('Face detection failed (non-critical):', err.message);
+    } finally {
+      setIsDetectingFaces(false);
+    }
+  };
+
+  // 馬賽克局部處理：在 canvas 上將偵測到的人臉區域像素化
+  const handleApplyBlur = () => {
+    if (!photoBase64 || detectedFaces.length === 0) return;
+
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+
+      // 關閉平滑以達到馬賽克效果
+      ctx.imageSmoothingEnabled = false;
+
+      detectedFaces.forEach(face => {
+        if (!face.box_2d) return;
+        const [ymin_raw, xmin_raw, ymax_raw, xmax_raw] = face.box_2d;
+        
+        // 將 [0, 1000] 區間的比例坐標換算為 canvas 實際尺寸
+        const ymin = ymin_raw / 1000;
+        const xmin = xmin_raw / 1000;
+        const ymax = ymax_raw / 1000;
+        const xmax = xmax_raw / 1000;
+
+        const x = xmin * canvas.width;
+        const y = ymin * canvas.height;
+        const w = (xmax - xmin) * canvas.width;
+        const h = (ymax - ymin) * canvas.height;
+
+        // 1. 將馬賽克格點大小調小，使馬賽克更精細 (由 6 比例提高到 14，更小格)
+        const size = Math.max(4, Math.round(Math.min(w, h) / 14));
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = Math.max(1, w / size);
+        tempCanvas.height = Math.max(1, h / size);
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.imageSmoothingEnabled = false;
+
+        // 縮小繪製到暫存 canvas
+        tempCtx.drawImage(canvas, x, y, w, h, 0, 0, tempCanvas.width, tempCanvas.height);
+        
+        // 2. 使用橢圓剪裁路徑，只對人臉部分進行馬賽克處理，不要遮擋到背景與肩膀
+        ctx.save();
+        ctx.beginPath();
+        const centerX = x + w / 2;
+        const centerY = y + h / 2;
+        const radiusX = w / 2;
+        const radiusY = h / 2;
+        ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
+        ctx.clip();
+
+        // 放大繪製回原畫布，僅繪製在橢圓範圍內
+        ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, x, y, w, h);
+        
+        ctx.restore();
+      });
+
+      // 輸出新的馬賽克照片
+      const blurredDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      setPhotoBase64(blurredDataUrl);
+      setFaceDetectionWarning(false);
+      setDetectedFaces([]);
+    };
+    img.src = photoBase64;
+  };
+
+  // AI 圖片轉譯：將照片送至 Gemini 多模態 API 進行文字辨識與場景描述
+  const handleDescribeImage = async () => {
+    if (!photoBase64) {
+      alert('請先上傳一張照片。');
+      return;
+    }
+
+    setIsDescribingImage(true);
+    setImageDescribeError('');
+
+    try {
+      const response = await fetch('/api/describe-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          imageBase64: photoBase64,
+          mimeType: 'image/jpeg'
+        })
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        let detailsMsg = '';
+        if (resData.details) {
+          try {
+            const parsed = JSON.parse(resData.details);
+            detailsMsg = parsed.error?.message || resData.details;
+          } catch (e) {
+            detailsMsg = resData.details;
+          }
+        }
+        const errorMsg = detailsMsg 
+          ? `${resData.error} (${detailsMsg})` 
+          : (resData.error || 'AI 圖片轉譯服務暫時發生錯誤');
+        throw new Error(errorMsg);
+      }
+
+      // 將 AI 描述插入文字框（追加，不覆蓋）
+      if (resData.description) {
+        setDescription(prev => {
+          const trimmed = prev.trim();
+          return trimmed 
+            ? `${trimmed}\n\n📷 AI 圖片描述：${resData.description}` 
+            : resData.description;
+        });
+      }
+    } catch (err) {
+      console.error('Describe image error:', err);
+      setImageDescribeError(err.message);
+    } finally {
+      setIsDescribingImage(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -71,7 +427,9 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
 
     setIsSubmitting(true);
 
+    const feedbackId = "node_" + new Date().getTime() + "_" + Math.random().toString(36).substr(2, 5);
     const payload = {
+      id: feedbackId,
       formType: 'node_feedback',
       timestamp: new Date().toISOString(),
       lat,
@@ -80,7 +438,12 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
       description: description.trim(),
       tags: selectedTags,
       photo_base64: photoBase64,
-      photo_filename: photoFilename
+      photo_filename: photoFilename,
+      ai_summary: aiSummary.trim(),
+      is_voice: isVoiceUsed,
+      photo_exif: stripExifGps 
+        ? (photoExif ? { ...photoExif, latitude: '[已移除]', longitude: '[已移除]', gps_stripped: true } : null)
+        : (photoExif || null)
     };
 
     try {
@@ -146,36 +509,209 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-1">您的記憶與故事</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="這裡有什麼特別的回憶嗎？"
-            className="w-full p-2 border border-slate-200 rounded-lg text-sm min-h-[80px] focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-          />
+          <div className="flex justify-between items-center mb-1.5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-1.5">
+              <label className="block text-sm font-bold text-slate-700">您的記憶與故事</label>
+              {aiSummary && (
+                <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold flex items-center gap-0.5 animate-bounce">
+                  ✨ AI 已潤飾
+                </span>
+              )}
+            </div>
+            
+            <div className="flex gap-2">
+              {/* Web Speech API Microphone Button */}
+              {isVoiceSupported && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleToggleListen(); }}
+                  className={`
+                    flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shadow-sm transition-all cursor-pointer
+                    ${isListening 
+                      ? 'bg-red-500 text-white animate-pulse' 
+                      : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'}
+                  `}
+                  title="用語音說故事"
+                >
+                  <span className="text-[10px]">🎙️</span>
+                  <span>{isListening ? '聆聽中...' : '語音輸入'}</span>
+                </button>
+              )}
+
+              {/* AI Summarize Button (only show if description has content) */}
+              {description.trim() && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleAISummarize(); }}
+                  disabled={isSummarizing}
+                  className="flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 text-white rounded-full text-[10px] font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+                  title="使用 Gemini AI 潤飾並整理故事"
+                >
+                  <span>✨</span>
+                  <span>AI 潤飾</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={isVoiceSupported ? "這裡有什麼特別的回憶嗎？（可點擊上方「語音輸入」用語音說故事喔！）" : "這裡有什麼特別的回憶嗎？"}
+              className="w-full p-2 border border-slate-200 rounded-lg text-sm min-h-[85px] focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+            />
+
+            {/* Pulsing glowing microphone recording overlay */}
+            {isListening && (
+              <div 
+                className="absolute inset-0 bg-blue-50/90 backdrop-blur-xs rounded-lg flex flex-col items-center justify-center border border-blue-200 z-10 animate-fade-in"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="relative mb-2">
+                  <div className="absolute inset-0 bg-red-400 rounded-full animate-ping opacity-70"></div>
+                  <div className="relative bg-red-500 text-white rounded-full p-3.5 shadow-md flex items-center justify-center">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 005 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd"/>
+                    </svg>
+                  </div>
+                </div>
+                <p className="text-blue-900 font-bold text-xs animate-pulse">語音聆聽中...請對麥克風說話</p>
+                <button 
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleToggleListen(); }}
+                  className="mt-2.5 px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 font-bold text-[10px] rounded-full border border-red-200 transition-colors shadow-xs cursor-pointer"
+                >
+                  說完了，點擊停止 ⏹️
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* AI Polished Preview Card */}
+          {showSummaryCard && (
+            <div 
+              className="bg-gradient-to-r from-violet-50/95 to-indigo-50/95 border border-indigo-200 rounded-lg p-3 mt-2 shadow-inner transition-all z-10 relative overflow-hidden animate-fade-in"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-[11px] font-extrabold text-indigo-900 flex items-center gap-1 animate-pulse">
+                  ✨ Gemini AI 智慧地景故事潤飾
+                </span>
+                <button 
+                  type="button"
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    // 延遲更新狀態避免 DOM 卸載導致 Leaflet 關閉彈出視窗
+                    setTimeout(() => {
+                      setShowSummaryCard(false); 
+                      setAiSummary(''); 
+                    }, 50);
+                  }}
+                  className="text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {isSummarizing ? (
+                <div className="space-y-1.5 py-1">
+                  <div className="h-3 bg-indigo-200 rounded-full w-full animate-pulse"></div>
+                  <div className="h-3 bg-indigo-200 rounded-full w-11/12 animate-pulse"></div>
+                  <div className="h-3 bg-indigo-200 rounded-full w-4/5 animate-pulse"></div>
+                  <div className="text-[10px] text-indigo-500 animate-pulse text-center mt-1">AI 正在斟酌字句中...</div>
+                </div>
+              ) : summarizeError ? (
+                <div className="text-[11px] text-red-600 font-bold py-1">
+                  ⚠️ {summarizeError}
+                </div>
+              ) : (
+                <>
+                  <p className="text-xs text-slate-700 leading-relaxed bg-white/80 p-2.5 rounded border border-indigo-100 shadow-2xs max-h-[120px] overflow-y-auto font-normal">
+                    {aiSummary}
+                  </p>
+                  
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDescription(aiSummary);
+                        // 延遲更新狀態避免 DOM 卸載導致 Leaflet 關閉彈出視窗
+                        setTimeout(() => {
+                          setShowSummaryCard(false);
+                        }, 50);
+                      }}
+                      className="flex-1 bg-white hover:bg-slate-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold py-1 rounded transition-colors shadow-2xs cursor-pointer"
+                    >
+                      套用 (覆蓋原文)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // 延遲更新狀態避免 DOM 卸載導致 Leaflet 關閉彈出視窗
+                        setTimeout(() => {
+                          setShowSummaryCard(false);
+                        }, 50);
+                      }}
+                      className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white text-[10px] font-bold py-1 rounded transition-colors shadow-xs cursor-pointer"
+                    >
+                      保留，與原文一同送出
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
+
 
         {/* Photo Upload */}
         <div>
           <label className="block text-sm font-bold text-slate-700 mb-1">上傳照片</label>
           <div 
-            className="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center cursor-pointer hover:bg-slate-50 transition-colors"
+            className={`
+              border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-all
+              ${isDragOver 
+                ? 'border-blue-500 bg-blue-50/50 scale-[1.01]' 
+                : 'border-slate-300 hover:bg-slate-50 hover:border-slate-400'}
+            `}
             onClick={() => fileInputRef.current?.click()}
+            onDragOver={handleDragOver}
+            onDragEnter={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
           >
             {photoBase64 ? (
-              <div className="relative">
+              <div className="relative" onClick={(e) => e.stopPropagation()}>
                 <img src={photoBase64} alt="Preview" className="max-h-32 mx-auto rounded" />
                 <button 
-                  onClick={(e) => { e.stopPropagation(); setPhotoBase64(null); setPhotoFilename(''); }}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs shadow-md"
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    // 延遲更新狀態避免 DOM 卸載導致 Leaflet 關閉彈出視窗
+                    setTimeout(() => {
+                      setPhotoBase64(null); 
+                      setPhotoFilename(''); 
+                      setPhotoExif(null);
+                      setStripExifGps(false); // Reset EXIF GPS toggle
+                      setImageDescribeError('');
+                      setIsDetectingFaces(false);
+                      setFaceDetectionWarning(false);
+                      setDetectedFaces([]);
+                    }, 50);
+                  }}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs shadow-md cursor-pointer"
                 >
                   ✕
                 </button>
               </div>
             ) : (
-              <div className="text-slate-500 flex flex-col items-center">
-                <span className="text-2xl mb-1">📷</span>
-                <span className="text-xs">點擊選擇照片 (自動壓縮)</span>
+              <div className="text-slate-500 flex flex-col items-center pointer-events-none">
+                <span className="text-2xl mb-1">{isDragOver ? '📥' : '📷'}</span>
+                <span className="text-xs font-semibold">
+                  {isDragOver ? '放開以匯入照片' : '點擊選擇或拖移照片至此 (自動壓縮)'}
+                </span>
               </div>
             )}
             <input 
@@ -186,6 +722,112 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
               onChange={handleFileChange}
             />
           </div>
+
+          {/* 敏感內容 (人臉) 偵測提示 */}
+          {isDetectingFaces && (
+            <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+              <div className="inline-block w-3.5 h-3.5 border-2 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
+              <p className="text-[10px] text-blue-700 font-semibold">正在自動偵測敏感內容 (人臉)...</p>
+            </div>
+          )}
+
+          {faceDetectionWarning && detectedFaces.length > 0 && (
+            <div className="mt-2 p-2.5 bg-rose-50 border border-rose-200 rounded-lg" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-start gap-2">
+                <span className="text-sm flex-shrink-0 mt-0.5">⚠️</span>
+                <div className="flex-1">
+                  <p className="text-[11px] font-bold text-rose-800">
+                    偵測到照片中可能含有 {detectedFaces.length} 處人臉
+                  </p>
+                  <p className="text-[10px] text-rose-600 leading-relaxed mt-0.5">
+                    為保護他人隱私，建議在公開前將人臉進行模糊或馬賽克處理。
+                  </p>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleApplyBlur();
+                      }}
+                      className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded text-[10px] font-bold transition-colors cursor-pointer"
+                    >
+                      🧩 套用馬賽克處理
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFaceDetectionWarning(false);
+                      }}
+                      className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded text-[10px] font-medium transition-colors cursor-pointer"
+                    >
+                      忽略
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* EXIF GPS 隱私控制 */}
+          {photoExif && photoExif.latitude && (
+            <div className="mt-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-start gap-2">
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 mt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={stripExifGps}
+                    onChange={() => {
+                      setTimeout(() => {
+                        setStripExifGps(prev => !prev);
+                      }, 50);
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-slate-300 peer-focus:ring-2 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                </label>
+                <div className="flex-1">
+                  <p className="text-[11px] font-bold text-amber-800">
+                    🔒 移除照片 GPS 定位資料
+                  </p>
+                  <p className="text-[10px] text-amber-600 leading-relaxed mt-0.5">
+                    偵測到照片含有 GPS 座標（{photoExif.latitude}, {photoExif.longitude}）。
+                    開啟此選項將在送出時移除 EXIF 中的 GPS 資料，僅保留您在地圖上標記的位置。
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* AI 圖片轉譯按鈕 */}
+          {photoBase64 && (
+            <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); handleDescribeImage(); }}
+                disabled={isDescribingImage}
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white rounded-lg text-xs font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+                title="使用 Gemini AI 分析照片中的文字與場景"
+              >
+                {isDescribingImage ? (
+                  <>
+                    <span className="animate-spin">⏳</span>
+                    <span>AI 正在分析圖片中...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>📝</span>
+                    <span>AI 圖片轉譯</span>
+                  </>
+                )}
+              </button>
+              {imageDescribeError && (
+                <div className="text-[10px] text-red-600 font-bold mt-1 px-1">
+                  ⚠️ {imageDescribeError}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
       
