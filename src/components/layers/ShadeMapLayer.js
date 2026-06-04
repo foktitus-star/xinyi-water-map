@@ -1,14 +1,67 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMap } from 'react-leaflet';
 
 // Use the library's official demo API key as a fallback to ensure out-of-the-box functionality
 const DEFAULT_API_KEY = "eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6InRwcGlvdHJvd3NraUBzaGFkZW1hcC5hcHAiLCJjcmVhdGVkIjoxNjYyNDkzMDY2Nzk0LCJpYXQiOjE2NjI0OTMwNjZ9.ovCrLTYsdKFTF6TW3DuODxCaAtGQ3qhcmqj3DWcol5g";
 
-export default function ShadeMapLayer({ show, apiKey, date, opacity = 0.6 }) {
+export default function ShadeMapLayer({ show, apiKey, date, opacity = 0.6, showTrees = false }) {
   const map = useMap();
   const layerRef = useRef(null);
+  const [treeFeatures, setTreeFeatures] = useState([]);
+
+  // Fetch local street tree data and convert to 3D GeoJSON polygons
+  useEffect(() => {
+    if (!show || !showTrees) {
+      setTreeFeatures([]);
+      return;
+    }
+
+    fetch('/TaipeiTree_filtered.json')
+      .then((res) => res.json())
+      .then((data) => {
+        // Filter trees to the active study area boundary
+        const validTrees = data.filter(
+          (t) =>
+            t &&
+            t.lat != null && t.lng != null &&
+            t.lat >= 25.005927 && t.lat <= 25.052146 &&
+            t.lng >= 121.532936 && t.lng <= 121.610527
+        );
+
+        // Convert each tree coordinate to a small 4x4 meter square polygon to cast a shadow
+        const latOffset = 0.000015; // ~1.5 meters offset north/south
+        const lngOffset = 0.000015; // ~1.5 meters offset east/west
+
+        const features = validTrees.map((t) => {
+          const lat = parseFloat(t.lat);
+          const lng = parseFloat(t.lng);
+          const height = parseFloat(t.TreeHeight) || 8.0; // Default tree height of 8 meters if missing
+
+          return {
+            type: 'Feature',
+            geometry: {
+              type: 'Polygon',
+              coordinates: [[
+                [lng - lngOffset, lat - latOffset],
+                [lng + lngOffset, lat - latOffset],
+                [lng + lngOffset, lat + latOffset],
+                [lng - lngOffset, lat + latOffset],
+                [lng - lngOffset, lat - latOffset]
+              ]]
+            },
+            properties: {
+              height: height,
+              name: t.TreeType || 'Street Tree'
+            }
+          };
+        });
+
+        setTreeFeatures(features);
+      })
+      .catch((err) => console.error('Failed to load trees for ShadeMap shadow rendering:', err));
+  }, [show, showTrees]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -25,7 +78,7 @@ export default function ShadeMapLayer({ show, apiKey, date, opacity = 0.6 }) {
           // Simple OSM building parser for realistic urban building shadows
           const fetchOSMBuildings = async () => {
             try {
-              if (map.getZoom() < 15) return [];
+              if (map.getZoom() < 15) return treeFeatures; // Only return trees if zoom is low
               const bounds = map.getBounds();
               const south = bounds.getSouth();
               const west = bounds.getWest();
@@ -42,7 +95,7 @@ export default function ShadeMapLayer({ show, apiKey, date, opacity = 0.6 }) {
                 out skel qt;`;
 
               const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
-              if (!res.ok) return [];
+              if (!res.ok) return treeFeatures;
               const data = await res.json();
 
               const nodes = {};
@@ -52,7 +105,7 @@ export default function ShadeMapLayer({ show, apiKey, date, opacity = 0.6 }) {
                 }
               });
 
-              const features = [];
+              const buildingFeatures = [];
               data.elements.forEach(el => {
                 if (el.type === 'way' && el.nodes) {
                   const coordinates = el.nodes
@@ -67,7 +120,7 @@ export default function ShadeMapLayer({ show, apiKey, date, opacity = 0.6 }) {
 
                     const height = el.tags && (el.tags.height || (el.tags['building:levels'] ? parseFloat(el.tags['building:levels']) * 3 : 12));
 
-                    features.push({
+                    buildingFeatures.push({
                       type: 'Feature',
                       geometry: {
                         type: 'Polygon',
@@ -80,10 +133,12 @@ export default function ShadeMapLayer({ show, apiKey, date, opacity = 0.6 }) {
                   }
                 }
               });
-              return features;
+
+              // Merge building shadows with tree shadows
+              return [...buildingFeatures, ...treeFeatures];
             } catch (err) {
               console.error('Error fetching buildings:', err);
-              return [];
+              return treeFeatures;
             }
           };
 
@@ -132,7 +187,7 @@ export default function ShadeMapLayer({ show, apiKey, date, opacity = 0.6 }) {
         layerRef.current = null;
       }
     };
-  }, [show, map, apiKey]);
+  }, [show, map, apiKey, treeFeatures]); // Recreate layer when trees list changes to force recalculation
 
   // Update date dynamically
   useEffect(() => {

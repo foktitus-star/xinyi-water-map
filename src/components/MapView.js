@@ -305,6 +305,7 @@ export default function MapView({ onStartTour }) {
           apiKey={process.env.NEXT_PUBLIC_SHADEMAP_API_KEY}
           date={shadeDate}
           opacity={shadeOpacity}
+          showTrees={showTrees}
         />
 
         {routes.map((route, ri) =>
