@@ -110,9 +110,9 @@ export default function MapView({ onStartTour }) {
   const [zoningOpacity, setZoningOpacity] = useState(0.45);
 
   // Historical basemap state (null = none active)
-  const [activeHistory, setActiveHistory] = useState(null);
+  const [activeHistory, setActiveHistory] = useState('liugong1939');
   const [historyOpacities, setHistoryOpacities] = useState(
-    HISTORICAL_MAPS.reduce((acc, hm) => ({ ...acc, [hm.id]: 0.7 }), {})
+    HISTORICAL_MAPS.reduce((acc, hm) => ({ ...acc, [hm.id]: hm.id === 'liugong1939' ? 0.55 : 0.7 }), {})
   );
 
   // Satellite layer state
