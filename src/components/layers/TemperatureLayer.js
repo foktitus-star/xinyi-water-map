@@ -6,6 +6,7 @@ export function useTemperatureLayer() {
   const [showTemperature, setShowTemperature] = useState(false);
   const [temperatureUrl, setTemperatureUrl] = useState('');
   const [temperatureLoading, setTemperatureLoading] = useState(false);
+  const [temperatureOpacity, setTemperatureOpacity] = useState(0.65);
 
   useEffect(() => {
     if (showTemperature && !temperatureUrl && !temperatureLoading) {
@@ -36,7 +37,9 @@ export function useTemperatureLayer() {
     showTemperature,
     setShowTemperature,
     temperatureUrl,
-    temperatureLoading
+    temperatureLoading,
+    temperatureOpacity,
+    setTemperatureOpacity
   };
 }
 
@@ -57,7 +60,7 @@ import InfoTooltip from './info-tooltip/InfoTooltip';
 
 export function TemperatureControl({ show, onChange, loading, opacity, onOpacityChange }) {
   return (
-    <div className="flex flex-col mb-1">
+    <div className="flex flex-col mb-1 w-full">
       <div className="flex items-center justify-between gap-2 hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors w-full">
         <label
           className="flex items-center gap-3 cursor-pointer flex-1"
@@ -68,14 +71,14 @@ export function TemperatureControl({ show, onChange, loading, opacity, onOpacity
             onChange={(e) => onChange(e.target.checked)}
             className="w-5 h-5 rounded accent-[#ef4444] cursor-pointer"
           />
-          <span className="text-sm leading-tight text-slate-700">
-            🌡️ 地表溫度 (Landsat 8) {loading && <span className="text-xs text-slate-400">載入中...</span>}
+          <span className="text-sm leading-tight text-slate-700 flex items-center">
+            🌡️ 地表溫度 (2024夏) {loading && <span className="ml-2 text-xs text-slate-400">載入中...</span>}
           </span>
         </label>
         <InfoTooltip id="temperature" />
       </div>
 
-      {/* Opacity Slider — visible only when layer is on */}
+      {/* Opacity Slider */}
       <div className={`
         flex items-center gap-2 px-10 transition-all duration-300 ease-in-out
         ${show ? 'h-6 opacity-100 mt-0.5' : 'h-0 opacity-0 overflow-hidden'}
