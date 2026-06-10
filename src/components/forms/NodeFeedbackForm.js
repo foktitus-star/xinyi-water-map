@@ -48,6 +48,14 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
     }
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
+
   // 啟動/停止語音辨識
   const handleToggleListen = () => {
     if (isListening) {

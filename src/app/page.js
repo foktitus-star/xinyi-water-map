@@ -22,7 +22,7 @@ const MapView = dynamic(() => import('@/components/MapView'), {
 });
 
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState('map'); // 'usage', 'map', 'layers', 'form', 'history', 'changelog'
+  const [activeTab, setActiveTab] = useState('map'); // 'map', 'layers', 'form', 'history', 'changelog'
   const [fontSize, setFontSize] = useState('medium'); // 'small', 'medium', 'large'
   const [showLanding, setShowLanding] = useState(true);
 
@@ -133,6 +133,14 @@ export default function HomePage() {
           dotBorder: 'border-emerald-400/40',
           bgGradient: 'linear-gradient(135deg, #05966933, #06402433)',
           cardBg: 'rgba(5,150,105,0.07)'
+        };
+      case 'DATA':
+        return {
+          badgeBg: 'bg-[#0369a133] text-[#7dd3fc]',
+          borderHover: 'hover:border-sky-400/30',
+          dotBorder: 'border-sky-400/40',
+          bgGradient: 'linear-gradient(135deg, #0369a133, #07527533)',
+          cardBg: 'rgba(3,105,161,0.07)'
         };
       default:
         return {
@@ -415,108 +423,6 @@ export default function HomePage() {
         {/* The Map stays here at the bottom layer */}
         <div className="absolute inset-0 z-0">
           <MapView onStartTour={startTour} />
-        </div>
-
-        {/* ── Overlay: Usage Guide ── */}
-        <div 
-          className={`absolute inset-0 z-[1000] bg-white transition-all duration-500 ease-in-out ${activeTab === 'usage' ? 'w-1/2' : 'w-0'} overflow-hidden`}
-        >
-          <div className="h-full overflow-y-auto">
-            <div className="p-8">
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-3xl font-bold text-slate-900 border-l-8 border-blue-600 pl-6">使用方法</h2>
-                <button
-                  onClick={() => setActiveTab('map')}
-                  className="text-2xl text-slate-400 hover:text-slate-600 transition-colors"
-                  title="關閉"
-                >
-                  ✕
-                </button>
-              </div>
-              <p className="text-base text-slate-500 mb-8">了解如何使用信水義河互動地圖</p>
-              
-              <div className="space-y-6">
-                {/* Layer Control Section */}
-                <div className="bg-blue-50 p-5 rounded-xl border border-blue-200">
-                  <h3 className="text-xl font-bold text-slate-900 mb-4">📍 圖層控制面板</h3>
-                  <p className="text-sm text-slate-600 mb-4">地圖右上角有一個圖層控制面板（☰ 按鈕），點擊展開後可以看到所有可用的圖層。</p>
-                  
-                  <div className="bg-white p-4 rounded-lg mb-4 border border-blue-100">
-                    <p className="text-sm font-semibold text-slate-700 mb-3">✓ 如何選擇圖層：</p>
-                    <ul className="text-sm text-slate-600 space-y-2 ml-4">
-                      <li>• 點擊圖層名稱前的<strong>方形勾選框</strong>來開啟或關閉圖層</li>
-                      <li>• 每個圖層都有一個<strong>不透明度滑桿</strong>，可以調整圖層的透明度（0-100%）</li>
-                      <li>• 透明度調整可以幫助你比較不同圖層或看到下方的地圖</li>
-                    </ul>
-                  </div>
-
-                  <div className="bg-white p-4 rounded-lg border border-blue-100">
-                    <p className="text-sm font-semibold text-slate-700 mb-3">📂 圖層分類：</p>
-                    <ul className="text-sm text-slate-600 space-y-2 ml-4">
-                      <li>• <strong>🕰️ 古今地圖</strong> - 歷史地圖（1904-1989）</li>
-                      <li>• <strong>🛰️ 衛星影像</strong> - 現代衛星影像與環境指數</li>
-                      <li>• <strong>🌳 開放資料</strong> - 台北市政府開放資料</li>
-                      <li>• <strong>🌡️ 溫度圖層</strong> - 實時溫度分布</li>
-                      <li>• <strong>🚶 路線</strong> - 四條水文導覽路線</li>
-                    </ul>
-                  </div>
-                </div>
-
-                {/* Routes Section */}
-                <div className="bg-green-50 p-5 rounded-xl border border-green-200">
-                  <h3 className="text-xl font-bold text-slate-900 mb-4">🚶 水文導覽路線</h3>
-                  <p className="text-sm text-slate-600 mb-4">地圖上顯示了四條不同顏色的水文導覽路線，每條路線都包含多個站點。</p>
-                  
-                  <div className="bg-white p-4 rounded-lg mb-4 border border-green-100">
-                    <p className="text-sm font-semibold text-slate-700 mb-3">🔵 四條路線：</p>
-                    <ul className="text-sm text-slate-600 space-y-2 ml-4">
-                      <li>• <span className="text-blue-500 font-bold">●</span> 路線一：瑠公圳水泱泱</li>
-                      <li>• <span className="text-green-500 font-bold">●</span> 路線二：信義之源 陂水之觀</li>
-                      <li>• <span className="text-orange-500 font-bold">●</span> 路線三：錫口 五分埔支線</li>
-                      <li>• <span className="text-purple-500 font-bold">●</span> 路線四：東西神 三大排水系</li>
-                    </ul>
-                  </div>
-
-                  <div className="bg-white p-4 rounded-lg border border-green-100">
-                    <p className="text-sm font-semibold text-slate-700 mb-3">✓ 與路線互動：</p>
-                    <ul className="text-sm text-slate-600 space-y-2 ml-4">
-                      <li>• 在圖層控制面板中<strong>勾選路線</strong>來顯示或隱藏該路線</li>
-                      <li>• <strong>點擊路線上的站點</strong>（圓形標記）可以查看該地點的詳細資訊</li>
-                      <li>• 詳細資訊包括站點名稱、位置描述、水文特徵等</li>
-                      <li>• 使用<strong>「全選」和「全清」按鈕</strong>快速開啟或關閉所有路線</li>
-                    </ul>
-                  </div>
-                </div>
-
-                {/* Map Navigation Section */}
-                <div className="bg-purple-50 p-5 rounded-xl border border-purple-200">
-                  <h3 className="text-xl font-bold text-slate-900 mb-4">🗺️ 地圖導航</h3>
-                  <p className="text-sm text-slate-600 mb-4">使用以下方式與地圖互動：</p>
-                  
-                  <div className="bg-white p-4 rounded-lg border border-purple-100">
-                    <ul className="text-sm text-slate-600 space-y-2 ml-4">
-                      <li>• <strong>滑鼠滾輪</strong> - 放大/縮小地圖</li>
-                      <li>• <strong>拖曳地圖</strong> - 移動地圖視角</li>
-                      <li>• <strong>📍 定位按鈕</strong> - 點擊右上方的定位按鈕取得你的目前位置</li>
-                      <li>• <strong>雙擊地圖</strong> - 快速放大到該位置</li>
-                    </ul>
-                  </div>
-                </div>
-
-                {/* Tips Section */}
-                <div className="bg-amber-50 p-5 rounded-xl border border-amber-200">
-                  <h3 className="text-xl font-bold text-slate-900 mb-4">💡 使用提示</h3>
-                  <ul className="text-sm text-slate-600 space-y-2 ml-4">
-                    <li>• 比較不同時期的歷史地圖，觀察水文系統的變遷</li>
-                    <li>• 使用衛星影像與植被指數了解現在的環境狀況</li>
-                    <li>• 調整圖層透明度可以同時查看多個圖層的資訊</li>
-                    <li>• 點擊路線站點了解每個地點的水文故事</li>
-                    <li>• 使用溫度圖層觀察都市熱島效應與水體的冷卻作用</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* ── Overlay: Form ── */}
