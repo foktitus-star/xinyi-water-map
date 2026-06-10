@@ -1,23 +1,25 @@
 import { NextResponse } from 'next/server';
 
-const getPasscode = () => process.env.ADMIN_PASSCODE || 'xinyi123';
+const getPasscode = () => process.env.ADMIN_PASSCODE;
 
 /**
  * GET - 取得所有回饋地標清單（包含 pending, approved, rejected），供後台審查使用
  */
 export async function GET(request) {
   try {
+    const configuredPasscode = getPasscode();
+    if (!configuredPasscode) {
+      return NextResponse.json({ error: 'Admin access not configured' }, { status: 503 });
+    }
     const passcodeHeader = request.headers.get('x-admin-passcode');
-    if (passcodeHeader !== getPasscode()) {
+    if (passcodeHeader !== configuredPasscode) {
       return NextResponse.json({ error: 'Unauthorized: Invalid passcode' }, { status: 401 });
     }
 
-    const targetUrl = process.env.NODE_SHEETS_API_URL 
-      || process.env.NEXT_PUBLIC_NODE_SHEETS_API_URL
-      || 'https://script.google.com/macros/s/AKfycbzUFuzNI-RWK8qqOy7GsgVPJwVkAWSAXiZ4dxx4_tnWpUAoVeL78_tSE9qevIlQoiSe/exec';
+    const targetUrl = process.env.NODE_SHEETS_API_URL;
 
     if (!targetUrl) {
-      return NextResponse.json({ error: 'Database URL not configured' }, { status: 500 });
+      return NextResponse.json({ error: 'Database URL not configured' }, { status: 503 });
     }
 
     const response = await fetch(targetUrl, {
@@ -50,7 +52,11 @@ export async function POST(request) {
     const payload = await request.json();
     const { id, status, passcode } = payload;
 
-    if (passcode !== getPasscode()) {
+    const configuredPasscode = getPasscode();
+    if (!configuredPasscode) {
+      return NextResponse.json({ error: 'Admin access not configured' }, { status: 503 });
+    }
+    if (passcode !== configuredPasscode) {
       return NextResponse.json({ error: 'Unauthorized: Invalid passcode' }, { status: 401 });
     }
 
@@ -58,12 +64,10 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Missing required parameters: id, status' }, { status: 400 });
     }
 
-    const targetUrl = process.env.NODE_SHEETS_API_URL 
-      || process.env.NEXT_PUBLIC_NODE_SHEETS_API_URL
-      || 'https://script.google.com/macros/s/AKfycbzUFuzNI-RWK8qqOy7GsgVPJwVkAWSAXiZ4dxx4_tnWpUAoVeL78_tSE9qevIlQoiSe/exec';
+    const targetUrl = process.env.NODE_SHEETS_API_URL;
 
     if (!targetUrl) {
-      return NextResponse.json({ error: 'Database URL not configured' }, { status: 500 });
+      return NextResponse.json({ error: 'Database URL not configured' }, { status: 503 });
     }
 
     // 發送 POST 至 Google Apps Script，帶有 update_status 指令與 ID

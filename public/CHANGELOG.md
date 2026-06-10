@@ -1,5 +1,10 @@
 # 信水義河互動地圖 更新日誌
 
+## [v1.8.0] - 2026-06-10 - 🔐 - UPDATE - 後台安全強化：移除硬編碼密碼與 GAS Webhook URL
+1. **移除預設管理密碼**：後台 `ADMIN_PASSCODE` 環境變數若未設定，API 即回傳 503 拒絕服務，不再 fallback 至硬編碼字串，防止未妥善設定環境時遭未授權存取。
+2. **移除所有硬編碼 GAS Webhook URL**：四個 API Route（`feedback-list`、`feedback-node`、`feedback-route`、`admin/feedback`）的 Google Apps Script fallback URL 全數移除，URL 未設定時回傳 503，避免洩漏的舊 URL 繼續被呼叫。
+3. **清除前端 bundle 洩漏風險**：移除所有 `NEXT_PUBLIC_NODE_SHEETS_API_URL` 與 `NEXT_PUBLIC_SHEETS_API_URL` 引用，一律改用僅伺服器端可讀的 `NODE_SHEETS_API_URL` / `SHEETS_API_URL`，確保敏感 URL 不被打包進前端程式碼。
+
 ## [v1.7.0] - 2026-06-03 - 🛡️ - LATEST - 隱私聲明專頁、EXIF 隱私控制與 AI 輔助潤飾標示
 1. **隱私權聲明專頁 🛡️**：新增精美的 `/privacy` 專屬頁面，採用 premium glassmorphism 視覺風格，詳盡說明資料收集範圍、不收集項目（如姓名、Email、Cookie、語音檔案等）、第三方傳輸對照表（Gemini API、Google Sheets 等）、資料保留期限、內容人工審核制度以及使用者的隱私權利，全方位提升資料可解釋性與信任感。同時，在主頁頂部導覽列與 Welcome Landing Page 底部嵌入直觀的連結。
 2. **EXIF GPS 隱私控制選項 🔒**：在回饋表單上傳照片後，若偵測到照片中含有 GPS 座標，系統將自動跳出「🔒 移除照片 GPS 定位資料」切換開關。使用者可一鍵決定是否在上傳前將該照片後端 metadata payload 中的 GPS 定位數據移除，保障實地踏查的個人隱私安全。

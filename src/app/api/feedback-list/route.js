@@ -2,12 +2,10 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const targetUrl = process.env.NODE_SHEETS_API_URL 
-      || process.env.NEXT_PUBLIC_NODE_SHEETS_API_URL
-      || 'https://script.google.com/macros/s/AKfycbzUFuzNI-RWK8qqOy7GsgVPJwVkAWSAXiZ4dxx4_tnWpUAoVeL78_tSE9qevIlQoiSe/exec'; // Fallback
+    const targetUrl = process.env.NODE_SHEETS_API_URL;
 
     if (!targetUrl) {
-      return NextResponse.json({ error: 'Database URL not configured' }, { status: 500 });
+      return NextResponse.json({ error: 'Database URL not configured' }, { status: 503 });
     }
 
     // 發送 GET 請求取得所有試算表列資料
