@@ -6,6 +6,24 @@ import { useMap } from 'react-leaflet';
 // Use the library's official demo API key as a fallback to ensure out-of-the-box functionality
 const DEFAULT_API_KEY = "eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6InRwcGlvdHJvd3NraUBzaGFkZW1hcC5hcHAiLCJjcmVhdGVkIjoxNjYyNDkzMDY2Nzk0LCJpYXQiOjE2NjI0OTMwNjZ9.ovCrLTYsdKFTF6TW3DuODxCaAtGQ3qhcmqj3DWcol5g";
 
+// Intercept fetch requests to shademap.app/sdk/load and proxy them to our own Next.js API
+if (typeof window !== 'undefined' && !window.fetch.__intercepted) {
+  const originalFetch = window.fetch;
+  window.fetch = function (url, options) {
+    if (typeof url === 'string' && url.includes('shademap.app/sdk/load')) {
+      return originalFetch('/api/shademap-load', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: options?.body
+      });
+    }
+    return originalFetch(url, options);
+  };
+  window.fetch.__intercepted = true;
+}
+
 export default function ShadeMapLayer({ show, apiKey, date, opacity = 0.6, showTrees = false }) {
   const map = useMap();
   const layerRef = useRef(null);
