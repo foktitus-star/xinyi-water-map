@@ -262,7 +262,7 @@ export default function MapView({ onStartTour }) {
         <ZoningLayer showZoning={showZoning} opacity={zoningOpacity} />
         <ComfortLayer showTrees={showTrees} showSidewalks={showSidewalks} />
         <ShadeMapLayer
-          show={showShadeMap && showTrees}
+          show={showShadeMap}
           apiKey={process.env.NEXT_PUBLIC_SHADEMAP_API_KEY}
           date={shadeMapDate}
           opacity={shadeMapOpacity}
@@ -482,8 +482,8 @@ export default function MapView({ onStartTour }) {
                     <InfoTooltip id="shademap" />
                   </div>
 
-                  {/* ShadeMap controls — only visible when both layer and trees are on */}
-                  {showShadeMap && showTrees && (
+                  {/* ShadeMap controls — only visible when layer is on */}
+                  {showShadeMap && (
                     <div className="mx-2 mb-2 px-3 py-2.5 bg-amber-50 rounded-xl border border-amber-200 space-y-2">
                       {/* Time slider */}
                       <div>
@@ -529,7 +529,7 @@ export default function MapView({ onStartTour }) {
                       </div>
 
                       <p className="text-[9px] text-amber-600 leading-relaxed">
-                        💡 需同時勾選「即時日照陰影」與「行道樹遮蔭」以開啟 3D 陰影模擬。
+                        🌳 勾選「行道樹遮蔭」可同時顯示樹冠 3D 陰影
                       </p>
                     </div>
                   )}
