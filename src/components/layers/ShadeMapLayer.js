@@ -146,7 +146,13 @@ export default function ShadeMapLayer({ show, date, opacity = 0.6, showTrees = f
         >;
         out skel qt;`;
 
-      const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+      const res = await fetch('/api/overpass', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query })
+      });
       if (!res.ok) return;
       const data = await res.json();
 

@@ -98,6 +98,27 @@ function AddMarkerInteraction({ isAddMode, onAddMarker }) {
   return null;
 }
 
+// Custom DivIcon for approved community markers (Warm orange/cream theme)
+const communityIcon = typeof window !== 'undefined' ? L.divIcon({
+  className: 'community-div-icon',
+  html: `<div style="
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: #fffbeb;
+    border: 2px solid #ea580c;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+    font-size: 14px;
+    line-height: 1;
+  ">🧡</div>`,
+  iconSize: [28, 28],
+  iconAnchor: [14, 28],
+  popupAnchor: [0, -28],
+}) : null;
+
 // ── Main map component ─────────────────────────────────────
 export default function MapView({ onStartTour }) {
   const [visibility, setVisibility] = useState(
@@ -183,6 +204,26 @@ export default function MapView({ onStartTour }) {
     setNewMarkerPos(latlng);
     setIsAddMarkerMode(false); // Disable mode after placing the marker
   };
+
+  // 社群審核通過地景標記狀態
+  const [communityMarkers, setCommunityMarkers] = useState([]);
+  const [showCommunityMarkers, setShowCommunityMarkers] = useState(true);
+
+  // 載入審核通過的社群地景
+  useEffect(() => {
+    async function loadCommunityMarkers() {
+      try {
+        const res = await fetch('/api/feedback-list');
+        if (res.ok) {
+          const data = await res.json();
+          setCommunityMarkers(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        console.error('Failed to load community markers:', err);
+      }
+    }
+    loadCommunityMarkers();
+  }, [newMarkerPos]);
 
   const polylines = useMemo(
     () => routes.map((r) => buildPolyline(r)),
@@ -301,6 +342,71 @@ export default function MapView({ onStartTour }) {
             </Popup>
           </Marker>
         )}
+        {/* ── Approved Community Markers ── */}
+        {showCommunityMarkers && communityMarkers.map((marker) => (
+          <Marker 
+            key={marker.id} 
+            position={[parseFloat(marker.lat), parseFloat(marker.lng)]}
+            icon={communityIcon}
+          >
+            <Popup className="feedback-popup" minWidth={280} maxWidth={340}>
+              <div className="p-2 font-sans text-slate-800 animate-fade-in">
+                {/* Custom Popup Header */}
+                <div className="border-b border-slate-200 pb-2 mb-2">
+                  <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                    <span className="text-[10px] bg-amber-500/10 text-amber-700 border border-amber-500/20 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
+                      👥 社群走讀地標
+                    </span>
+                    {marker.tags && marker.tags.split(',').map(tag => (
+                      <span key={tag} className="text-[9px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-semibold">
+                        #{tag.trim()}
+                      </span>
+                    ))}
+                    {marker.ai_summary && (
+                      <span className="text-[9px] bg-violet-100 text-violet-700 border border-violet-200 px-2 py-0.5 rounded-full font-bold flex items-center gap-0.5">
+                        ✨ AI 輔助潤飾
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[9px] text-slate-400 font-mono">
+                    踏查時間：{new Date(marker.timestamp).toLocaleDateString('zh-TW')}
+                  </div>
+                </div>
+
+                {/* Photo if present */}
+                {marker.photo_url && (
+                  <div className="rounded-lg overflow-hidden border border-slate-100 mb-2 max-h-36 flex items-center justify-center bg-slate-50">
+                    <img 
+                      src={marker.photo_url} 
+                      alt="Community geolandscape" 
+                      className="object-contain w-full h-full max-h-36"
+                      onError={(e) => {
+                        e.target.style.display = 'none'; // Hide if failed
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* User Story Description */}
+                <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap mb-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100 font-sans">
+                  {marker.description}
+                </p>
+
+                {/* AI Summary card if present */}
+                {marker.ai_summary && (
+                  <div className="bg-violet-950/5 border border-violet-500/10 rounded-lg p-2.5 text-[10px] text-violet-700">
+                    <div className="font-bold flex items-center gap-1 mb-1 text-violet-800">
+                      <span>✨</span> <span>AI 輔助潤飾（本段文字經 AI 協助生成）：</span>
+                    </div>
+                    <p className="leading-relaxed font-medium">
+                      {marker.ai_summary}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </Popup>
+          </Marker>
+        ))}
 
       </MapContainer>
 
@@ -312,8 +418,7 @@ export default function MapView({ onStartTour }) {
           border border-sky-200/60 rounded-2xl
           shadow-md text-slate-800
           transition-all duration-300 ease-in-out
-          ${expandPanel ? 'w-72 p-5' : 'w-12 h-12 p-0'}
-          max-h-[calc(100dvh-24px)] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]
+          ${expandPanel ? 'w-72 p-5 flex flex-col max-h-[calc(100dvh-24px)]' : 'w-12 h-12 p-0 overflow-hidden'}
         `}
       >
         {/* Toggle button */}
@@ -333,10 +438,11 @@ export default function MapView({ onStartTour }) {
         </button>
 
         {expandPanel && (
-          <div id="layer-control-panel-content" className="w-full">
-            <h3 className="text-base font-bold mb-3 tracking-wide text-slate-700" style={{ fontFamily: 'var(--font-serif)' }}>
+          <div id="layer-control-panel-content" className="flex flex-col h-full w-full overflow-hidden">
+            <h3 className="text-base font-bold mb-3 tracking-wide text-slate-700 shrink-0" style={{ fontFamily: 'var(--font-serif)' }}>
               圖層控制
             </h3>
+            <div className="flex-1 overflow-y-auto pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 
             {/* Route toggles */}
             <div id="tour-route-toggles" className="w-full">
@@ -393,6 +499,22 @@ export default function MapView({ onStartTour }) {
             {/* Open Data toggles */}
             <div id="tour-open-data-toggles" className="w-full">
               <div className="space-y-2 mb-4 pt-3 border-t border-slate-200">
+                {/* 民眾走讀回饋圖層 */}
+                <div className="flex items-center justify-between gap-2 hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors w-full">
+                  <label
+                    className="flex items-center gap-3 cursor-pointer flex-1"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={showCommunityMarkers}
+                      onChange={() => setShowCommunityMarkers(!showCommunityMarkers)}
+                      className="w-5 h-5 rounded accent-[#ea580c] cursor-pointer"
+                    />
+                    <span className="text-sm leading-tight text-slate-700 font-semibold text-orange-700">🧡 民眾走讀回饋</span>
+                  </label>
+                  <InfoTooltip id="community-markers" />
+                </div>
+
                 <div className="flex items-center justify-between gap-2 hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors w-full">
                   <label
                     className="flex items-center gap-3 cursor-pointer flex-1"
@@ -560,9 +682,10 @@ export default function MapView({ onStartTour }) {
                 ・點擊站點查看詳情
               </p>
             </div>
+            </div>
 
             {/* Free Marker Toggle */}
-            <div className="mt-4 pt-3 border-t border-slate-200">
+            <div className="mt-4 pt-3 border-t border-slate-200 shrink-0">
               <button
                 onClick={() => {
                   setIsAddMarkerMode(!isAddMarkerMode);
