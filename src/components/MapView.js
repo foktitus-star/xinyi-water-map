@@ -21,6 +21,8 @@ import TemperatureLayer, { TemperatureControl, useTemperatureLayer } from './lay
 import DataSourceControl from './layers/DataSourceControl';
 import NodeFeedbackForm from './forms/NodeFeedbackForm';
 import InfoTooltip from './layers/info-tooltip/InfoTooltip';
+import dynamic from 'next/dynamic';
+const ShadeMapLayer = dynamic(() => import('./layers/ShadeMapLayer'), { ssr: false });
 
 // Fix default icon issue in leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -108,6 +110,29 @@ export default function MapView({ onStartTour }) {
   const [showSidewalks, setShowSidewalks] = useState(false);
   const [showZoning, setShowZoning] = useState(false);
   const [zoningOpacity, setZoningOpacity] = useState(0.45);
+
+  // ShadeMap (Sun Shadow) state
+  const [showShadeMap, setShowShadeMap] = useState(false);
+  const [shadeMapOpacity, setShadeMapOpacity] = useState(0.6);
+  const nowMinutes = (() => {
+    const n = new Date();
+    const m = n.getHours() * 60 + n.getMinutes();
+    return Math.max(360, Math.min(1080, m)); // clamp 06:00-18:00
+  })();
+  const [shadeMapTime, setShadeMapTime] = useState(nowMinutes);
+  const shadeMapDate = useMemo(() => {
+    const d = new Date();
+    d.setHours(Math.floor(shadeMapTime / 60), shadeMapTime % 60, 0, 0);
+    return d;
+  }, [shadeMapTime]);
+
+  const formatMinutes = (m) => {
+    const h = Math.floor(m / 60);
+    const min = m % 60;
+    const ampm = h < 12 ? '上午' : '下午';
+    const hh = h % 12 === 0 ? 12 : h % 12;
+    return `${ampm} ${hh}:${String(min).padStart(2, '0')}`;
+  };
 
   // Historical basemap state (null = none active)
   const [activeHistory, setActiveHistory] = useState('liugong1939');
@@ -236,6 +261,13 @@ export default function MapView({ onStartTour }) {
         {/* ── Modular Layers ── */}
         <ZoningLayer showZoning={showZoning} opacity={zoningOpacity} />
         <ComfortLayer showTrees={showTrees} showSidewalks={showSidewalks} />
+        <ShadeMapLayer
+          show={showShadeMap}
+          apiKey={process.env.NEXT_PUBLIC_SHADEMAP_API_KEY}
+          date={shadeMapDate}
+          opacity={shadeMapOpacity}
+          showTrees={showTrees}
+        />
         <TemperatureLayer show={showTemperature} url={temperatureUrl} opacity={temperatureOpacity} />
 
         {routes.map((route, ri) =>
@@ -434,6 +466,74 @@ export default function MapView({ onStartTour }) {
                   opacity={temperatureOpacity}
                   onOpacityChange={setTemperatureOpacity}
                 />
+
+                {/* ── ShadeMap Sun Shadow ── */}
+                <div className="flex flex-col mb-1">
+                  <div className="flex items-center justify-between gap-2 hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors w-full">
+                    <label className="flex items-center gap-3 cursor-pointer flex-1">
+                      <input
+                        type="checkbox"
+                        checked={showShadeMap}
+                        onChange={() => setShowShadeMap(!showShadeMap)}
+                        className="w-5 h-5 rounded accent-[#f59e0b] cursor-pointer"
+                      />
+                      <span className="text-sm leading-tight text-slate-700">☀️ 即時日照陰影</span>
+                    </label>
+                    <InfoTooltip id="shademap" />
+                  </div>
+
+                  {/* ShadeMap controls — only visible when layer is on */}
+                  {showShadeMap && (
+                    <div className="mx-2 mb-2 px-3 py-2.5 bg-amber-50 rounded-xl border border-amber-200 space-y-2">
+                      {/* Time slider */}
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-[11px] font-semibold text-amber-800">🕒 {formatMinutes(shadeMapTime)}</span>
+                          <button
+                            onClick={() => setShadeMapTime(nowMinutes)}
+                            className="text-[10px] px-2 py-0.5 rounded-full bg-amber-200 hover:bg-amber-300 text-amber-900 font-medium transition-colors cursor-pointer"
+                          >
+                            🔄 目前時間
+                          </button>
+                        </div>
+                        <input
+                          type="range"
+                          min="360"
+                          max="1080"
+                          step="15"
+                          value={shadeMapTime}
+                          onChange={(e) => setShadeMapTime(Number(e.target.value))}
+                          className="w-full h-1.5 rounded-lg appearance-none cursor-pointer"
+                          style={{ background: 'linear-gradient(to right, #93c5fd, #fef08a, #818cf8)' }}
+                        />
+                        <div className="flex justify-between text-[9px] text-amber-700 mt-0.5">
+                          <span>06:00</span><span>12:00</span><span>18:00</span>
+                        </div>
+                      </div>
+
+                      {/* Opacity slider */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-amber-700 shrink-0">陰影深度</span>
+                        <input
+                          type="range"
+                          min="0.1"
+                          max="1"
+                          step="0.05"
+                          value={shadeMapOpacity}
+                          onChange={(e) => setShadeMapOpacity(parseFloat(e.target.value))}
+                          className="flex-1 h-1.5 bg-amber-200 rounded-lg appearance-none cursor-pointer accent-amber-600"
+                        />
+                        <span className="text-[10px] font-mono font-bold text-amber-800 w-7 text-right">
+                          {Math.round(shadeMapOpacity * 100)}%
+                        </span>
+                      </div>
+
+                      <p className="text-[9px] text-amber-600 leading-relaxed">
+                        🌳 勾選「行道樹遮蔭」可同時顯示樹冠 3D 陰影
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
