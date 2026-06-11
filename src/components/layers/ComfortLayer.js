@@ -67,10 +67,13 @@ export default function ComfortLayer({ showTrees, showSidewalks }) {
             };
             f.geometry.coordinates = projectPoints(f.geometry.coordinates);
           }
-          
           return inBounds;
         });
-        setSidewalks({ ...data, features: filteredFeatures });
+        const processedFeatures = filteredFeatures.map((f, idx) => ({
+          ...f,
+          id: `sidewalk-${idx}`
+        }));
+        setSidewalks({ ...data, features: processedFeatures });
       })
       .catch((err) => console.error('Failed to load sidewalks:', err));
   }, [showSidewalks, sidewalks]);
@@ -87,7 +90,7 @@ export default function ComfortLayer({ showTrees, showSidewalks }) {
       {showTrees &&
         trees.map((t, i) => (
           <CircleMarker
-            key={t.TreeID || `tree-${i}`}
+            key={t.TreeID ? `tree-marker-${t.TreeID}-${i}` : `tree-marker-${i}`}
             center={[t.lat, t.lng]}
             radius={3}
             pathOptions={{ stroke: false, fillColor: '#30F243', fillOpacity: 0.25 }}
