@@ -1,8 +1,43 @@
-import { Polyline, CircleMarker, Popup, LayerGroup, FeatureGroup } from 'react-leaflet';
+import { useState } from 'react';
+import { Polyline, CircleMarker, Popup, LayerGroup, FeatureGroup, useMap, useMapEvents } from 'react-leaflet';
 import { BASE_URL } from '@/data/routeData';
 import PopupLightbox from './PopupLightbox';
 import RouteFeedbackForm from '../forms/RouteFeedbackForm';
 import StationPopupContent from './StationPopupContent';
+
+function markerRadius(zoom) {
+  if (zoom >= 17) return 9;
+  if (zoom >= 15) return 7;
+  if (zoom >= 13) return 5;
+  return 3;
+}
+
+function ZoomAwareMarker({ station, route }) {
+  const map = useMap();
+  const [radius, setRadius] = useState(() => markerRadius(map.getZoom()));
+
+  useMapEvents({
+    zoomend: () => setRadius(markerRadius(map.getZoom())),
+  });
+
+  return (
+    <CircleMarker
+      center={[station.lat, station.lng]}
+      radius={radius}
+      pathOptions={{
+        color: 'rgba(255,255,255,0.55)',
+        weight: 1.5,
+        fillColor: route.color,
+        fillOpacity: 1,
+      }}
+    >
+      <Popup maxWidth={420} minWidth={340} className="custom-popup">
+        <PopupLightbox />
+        <StationPopupContent station={station} routeColor={route.color} />
+      </Popup>
+    </CircleMarker>
+  );
+}
 
 export default function RouteLayer({ route, polylines }) {
   return (
@@ -12,7 +47,6 @@ export default function RouteLayer({ route, polylines }) {
         ? Array.isArray(polylines[0][0])
           ? polylines.map((seg, si) => (
             <FeatureGroup key={`${route.id}-seg-group-${si}`}>
-              {/* Visible Polyline */}
               <Polyline
                 positions={seg}
                 pathOptions={{
@@ -20,10 +54,9 @@ export default function RouteLayer({ route, polylines }) {
                   weight: 4,
                   opacity: 0.75,
                   dashArray: null,
-                  interactive: false // Let the invisible line handle clicks
+                  interactive: false
                 }}
               />
-              {/* Invisible Hit Area */}
               <Polyline
                 positions={seg}
                 pathOptions={{
@@ -34,10 +67,10 @@ export default function RouteLayer({ route, polylines }) {
                 }}
               >
                 <Popup className="feedback-popup" minWidth={300} maxWidth={400}>
-                  <RouteFeedbackForm 
+                  <RouteFeedbackForm
                     routeId={route.id}
-                    routeName={route.name || `路線 ${route.id}`} 
-                    segmentId={`seg_${si + 1}`} 
+                    routeName={route.name || `路線 ${route.id}`}
+                    segmentId={`seg_${si + 1}`}
                   />
                 </Popup>
               </Polyline>
@@ -64,10 +97,10 @@ export default function RouteLayer({ route, polylines }) {
                 }}
               >
                 <Popup className="feedback-popup" minWidth={300} maxWidth={400}>
-                  <RouteFeedbackForm 
+                  <RouteFeedbackForm
                     routeId={route.id}
-                    routeName={route.name || `路線 ${route.id}`} 
-                    segmentId={`seg_1`} 
+                    routeName={route.name || `路線 ${route.id}`}
+                    segmentId={`seg_1`}
                   />
                 </Popup>
               </Polyline>
@@ -75,28 +108,13 @@ export default function RouteLayer({ route, polylines }) {
           )
         : null}
 
-      {/* Station markers */}
+      {/* Station markers — zoom-aware size, soft earth-tone border */}
       {route.stations.map((station) => (
-        <CircleMarker
+        <ZoomAwareMarker
           key={`${route.id}-${station.id}`}
-          center={[station.lat, station.lng]}
-          radius={8}
-          pathOptions={{
-            color: '#fff',
-            weight: 2,
-            fillColor: route.color,
-            fillOpacity: 1,
-          }}
-        >
-          <Popup
-            maxWidth={420}
-            minWidth={340}
-            className="custom-popup"
-          >
-            <PopupLightbox />
-            <StationPopupContent station={station} routeColor={route.color} />
-          </Popup>
-        </CircleMarker>
+          station={station}
+          route={route}
+        />
       ))}
     </LayerGroup>
   );

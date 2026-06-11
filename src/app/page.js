@@ -263,26 +263,31 @@ export default function HomePage() {
   };
 
   return (
-    <div className="flex flex-col w-full h-dvh overflow-hidden bg-slate-900" style={{
+    <div className="flex flex-col w-full h-dvh overflow-hidden bg-sky-50" style={{
       '--font-scale': fontScale,
     }}>
       {/* ── Top Header ── */}
-      <header className="z-[3000] w-full h-16 bg-slate-950/90 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-4 md:px-6 shadow-xl flex-shrink-0">
+      <header className="z-[3000] w-full h-16 bg-white/92 backdrop-blur-md border-b border-sky-200/60 flex items-center justify-between px-4 md:px-6 shadow-sm flex-shrink-0"
+        style={{ background: 'linear-gradient(90deg, #f0f9ff 0%, #e0f2fe 50%, #f0f9ff 100%)' }}
+      >
         <div className="flex items-center gap-3">
           {/* 手機版側欄收合切換按鈕 */}
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="md:hidden p-2 text-slate-300 hover:text-white bg-white/5 border border-white/10 rounded-xl active:scale-95 transition-all cursor-pointer"
+            className="md:hidden p-2 text-slate-500 hover:text-sky-700 bg-sky-50 border border-sky-200 rounded-xl active:scale-95 transition-all cursor-pointer"
             title="切換選單"
           >
             ☰
           </button>
           <div className="flex items-center">
-            <h1 className="bg-gradient-to-r from-blue-400 via-cyan-400 to-sky-300 bg-clip-text text-transparent text-sm md:text-xl font-black tracking-widest leading-none flex-shrink-0">
+            <h1
+              className="text-slate-700 text-sm md:text-xl tracking-widest leading-none flex-shrink-0"
+              style={{ fontFamily: 'var(--font-serif)', fontWeight: 700 }}
+            >
               信水義河
             </h1>
-            <span className="h-4 md:h-5 w-px bg-white/20 mx-2 md:mx-3 flex-shrink-0" />
-            <p className="text-slate-400 text-[10px] md:text-sm font-semibold tracking-wider font-sans">
+            <span className="h-4 md:h-5 w-px bg-sky-200 mx-2 md:mx-3 flex-shrink-0" />
+            <p className="text-slate-400 text-[10px] md:text-sm tracking-wider font-sans whitespace-nowrap">
               信義社大 水文導覽地圖
             </p>
           </div>
@@ -291,14 +296,14 @@ export default function HomePage() {
         <div className="flex items-center gap-2 md:gap-3">
           <Link
             href="/privacy"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-300 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-all duration-300 cursor-pointer shadow-md active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs text-slate-500 bg-sky-50/80 border border-sky-200/70 hover:bg-sky-100 hover:text-sky-700 transition-all duration-300 cursor-pointer shadow-sm active:scale-95"
           >
             <span>🛡️</span>
             <span className="hidden xs:inline">隱私聲明</span>
           </Link>
           <button
             onClick={() => setShowLanding(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-300 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-all duration-300 cursor-pointer shadow-md active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs text-slate-500 bg-sky-50/80 border border-sky-200/70 hover:bg-sky-100 hover:text-sky-700 transition-all duration-300 cursor-pointer shadow-sm active:scale-95"
           >
             <span>🏠</span>
             <span className="hidden xs:inline">首頁</span>
@@ -309,111 +314,106 @@ export default function HomePage() {
       {/* ── Main Body (Sidebar + Map Content) ── */}
       <main className="flex-1 w-full flex overflow-hidden relative">
         {/* ── Left Sidebar ── */}
-        <nav 
-          id="sidebar-navigation" 
+        <nav
+          id="sidebar-navigation"
           className={`
-            z-[2000] bg-slate-900/95 backdrop-blur-md border-r border-white/10 
-            flex flex-col items-center shadow-2xl transition-all duration-300 ease-in-out
+            z-[2000] backdrop-blur-md border-r border-sky-200/50
+            flex flex-col items-center shadow-md transition-all duration-300 ease-in-out
             ${isSidebarOpen ? 'w-20 py-4 px-2 gap-3' : 'w-0 p-0 border-r-0 overflow-hidden gap-0'}
             md:w-24 md:py-6 md:px-2 md:gap-3 md:flex
           `}
+          style={{ background: 'linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 60%, #f0f9ff 100%)' }}
         >
-        
-        <button 
+
+        <button
           onClick={() => setActiveTab('map')}
-          className={`w-full group relative py-2.5 rounded-xl transition-all duration-300 text-xs md:text-sm font-semibold flex flex-col items-center justify-center gap-1 mt-2 md:mt-0 ${activeTab === 'map' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:bg-white/5'}`}
+          className={`w-full group relative py-2.5 rounded-xl transition-all duration-300 text-xs md:text-sm flex flex-col items-center justify-center gap-1 mt-2 md:mt-0 ${activeTab === 'map' ? 'bg-sky-600 text-white shadow-md shadow-sky-400/30' : 'text-slate-500 hover:bg-sky-100'}`}
           title="地圖 (Map)"
         >
           <span className="text-base md:text-lg">🗺️</span>
-          <span className="text-[9px] md:text-xs font-sans tracking-wider block">地圖</span>
-          <span className="absolute left-full ml-4 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">Map</span>
+          <span className="text-xs md:text-sm font-sans tracking-wide block">地圖</span>
+          <span className="absolute left-full ml-4 px-2 py-1 bg-white text-slate-700 text-[10px] rounded border border-sky-100 shadow-sm opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">Map</span>
         </button>
 
-        <button 
+        <button
           onClick={() => setActiveTab('layers')}
-          className={`w-full group relative py-2.5 rounded-xl transition-all duration-300 text-xs md:text-sm font-semibold flex flex-col items-center justify-center gap-1 ${activeTab === 'layers' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:bg-white/5'}`}
+          className={`w-full group relative py-2.5 rounded-xl transition-all duration-300 text-xs md:text-sm flex flex-col items-center justify-center gap-1 ${activeTab === 'layers' ? 'bg-sky-600 text-white shadow-md shadow-sky-400/30' : 'text-slate-500 hover:bg-sky-100'}`}
           title="圖層說明 (Layers)"
         >
           <span className="text-base md:text-lg">📊</span>
-          <span className="text-[9px] md:text-xs font-sans tracking-wider block">圖層說明</span>
-          <span className="absolute left-full ml-4 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">Layers</span>
+          <span className="text-xs md:text-sm font-sans tracking-wide block">圖層說明</span>
+          <span className="absolute left-full ml-4 px-2 py-1 bg-white text-slate-700 text-[10px] rounded border border-sky-100 shadow-sm opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">Layers</span>
         </button>
 
-        <button 
+        <button
           onClick={() => setActiveTab('form')}
-          className={`w-full group relative py-2.5 rounded-xl transition-all duration-300 text-xs md:text-sm font-semibold flex flex-col items-center justify-center gap-1 ${activeTab === 'form' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:bg-white/5'}`}
+          className={`w-full group relative py-2.5 rounded-xl transition-all duration-300 text-xs md:text-sm flex flex-col items-center justify-center gap-1 ${activeTab === 'form' ? 'bg-sky-600 text-white shadow-md shadow-sky-400/30' : 'text-slate-500 hover:bg-sky-100'}`}
           title="回饋表單 (Feedback)"
         >
           <span className="text-base md:text-lg">📝</span>
-          <span className="text-[9px] md:text-xs font-sans tracking-wider block">回饋表單</span>
-          <span className="absolute left-full ml-4 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">Feedback</span>
+          <span className="text-xs md:text-sm font-sans tracking-wide block">回饋表單</span>
+          <span className="absolute left-full ml-4 px-2 py-1 bg-white text-slate-700 text-[10px] rounded border border-sky-100 shadow-sm opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">Feedback</span>
         </button>
 
-        <button 
+        <button
           onClick={() => setActiveTab('history')}
-          className={`w-full group relative py-2.5 rounded-xl transition-all duration-300 text-xs md:text-sm font-semibold flex flex-col items-center justify-center gap-1 ${activeTab === 'history' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:bg-white/5'}`}
+          className={`w-full group relative py-2.5 rounded-xl transition-all duration-300 text-xs md:text-sm flex flex-col items-center justify-center gap-1 ${activeTab === 'history' ? 'bg-sky-600 text-white shadow-md shadow-sky-400/30' : 'text-slate-500 hover:bg-sky-100'}`}
           title="歷史故事 (History)"
         >
           <span className="text-base md:text-lg">📚</span>
-          <span className="text-[9px] md:text-xs font-sans tracking-wider block">歷史故事</span>
-          <span className="absolute left-full ml-4 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">History</span>
+          <span className="text-xs md:text-sm font-sans tracking-wide block">歷史故事</span>
+          <span className="absolute left-full ml-4 px-2 py-1 bg-white text-slate-700 text-[10px] rounded border border-sky-100 shadow-sm opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">History</span>
         </button>
 
-        <div className="mt-auto opacity-20 text-[10px] font-mono -rotate-90 whitespace-nowrap tracking-[0.3em] text-white hidden md:block">XINYI_MAP</div>
+        <div className="mt-auto opacity-30 text-[10px] font-mono -rotate-90 whitespace-nowrap tracking-[0.3em] text-slate-400 hidden md:block">XINYI_MAP</div>
 
         {/* Changelog Button */}
         <div className="w-full px-1 pt-3 flex-shrink-0">
           <button
             onClick={() => setActiveTab('changelog')}
-            className={`w-full py-1.5 px-0.5 rounded-lg text-[9px] md:text-[10px] font-semibold transition-all duration-200 border flex flex-col items-center justify-center gap-0.5 ${
+            className={`w-full py-1.5 px-0.5 rounded-lg text-[10px] md:text-xs transition-all duration-200 border flex flex-col items-center justify-center gap-0.5 ${
               activeTab === 'changelog'
-                ? 'bg-violet-600/80 text-violet-100 border-violet-400/50 shadow-lg shadow-violet-500/20'
-                : 'bg-white/5 text-white/40 border-white/10 hover:bg-white/10 hover:text-white/70'
+                ? 'bg-violet-500/90 text-white border-violet-300/60 shadow-md'
+                : 'bg-sky-50/80 text-slate-400 border-sky-200/60 hover:bg-sky-100 hover:text-slate-600'
             }`}
             title="查看版本更新日誌"
           >
             <span>📜</span>
-            <span className="text-[9px] md:text-[10px] font-sans block">更新日誌</span>
+            <span className="text-[10px] md:text-xs font-sans block">更新日誌</span>
           </button>
         </div>
 
         {/* Font Size Selector (僅桌機版顯示) */}
-        <div className="pt-3 border-t border-white/10 flex-col gap-2 w-full px-2 flex-shrink-0 hidden md:flex">
-          <p className="text-[10px] text-white/50 text-center font-semibold">字體大小</p>
+        <div className="pt-3 border-t border-sky-100 flex-col gap-2 w-full px-2 flex-shrink-0 hidden md:flex">
+          <p className="text-[10px] text-slate-400 text-center">字體大小</p>
           <div className="flex gap-1 justify-center">
             <button
               onClick={() => setFontSize('small')}
               className={`px-2 py-1 rounded text-xs font-semibold transition-all ${
                 fontSize === 'small'
-                  ? 'bg-blue-600 text-white shadow-lg'
-                  : 'bg-white/10 text-white/60 hover:bg-white/20'
+                  ? 'bg-sky-500 text-white shadow-sm'
+                  : 'bg-sky-50 text-slate-500 border border-sky-200 hover:bg-sky-100'
               }`}
               title="小"
-            >
-              A
-            </button>
+            >A</button>
             <button
               onClick={() => setFontSize('medium')}
               className={`px-2 py-1 rounded text-sm font-semibold transition-all ${
                 fontSize === 'medium'
-                  ? 'bg-blue-600 text-white shadow-lg'
-                  : 'bg-white/10 text-white/60 hover:bg-white/20'
+                  ? 'bg-sky-500 text-white shadow-sm'
+                  : 'bg-sky-50 text-slate-500 border border-sky-200 hover:bg-sky-100'
               }`}
               title="中"
-            >
-              A
-            </button>
+            >A</button>
             <button
               onClick={() => setFontSize('large')}
               className={`px-2 py-1 rounded text-base font-semibold transition-all ${
                 fontSize === 'large'
-                  ? 'bg-blue-600 text-white shadow-lg'
-                  : 'bg-white/10 text-white/60 hover:bg-white/20'
+                  ? 'bg-sky-500 text-white shadow-sm'
+                  : 'bg-sky-50 text-slate-500 border border-sky-200 hover:bg-sky-100'
               }`}
               title="大"
-            >
-              A
-            </button>
+            >A</button>
           </div>
         </div>
       </nav>

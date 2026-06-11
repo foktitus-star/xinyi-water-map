@@ -11,8 +11,8 @@ export const routes = [
     "id": "route-01",
     "name": "瑠公圳水泱泱 三犁農田綠昂揚",
     "subtitle": "沿瑠公圳歷史路徑踏查水文密碼與古河道遺跡",
-    "color": "#3B82F6",
-    "colorDark": "#1D4ED8",
+    "color": "#4580A0",
+    "colorDark": "#2F6080",
     "startStation": "六張犁捷運站",
     "stationCount": 17,
     "stations": [
@@ -460,8 +460,8 @@ export const routes = [
     "id": "route-02",
     "name": "信義之源 陂水之觀",
     "subtitle": "探訪信義區最早的陂塘水利系統",
-    "color": "#FF408B",
-    "colorDark": "#D81B60",
+    "color": "#5C7A52",
+    "colorDark": "#3E5C38",
     "startStation": "永春捷運站",
     "stationCount": 12,
     "stations": [
@@ -866,8 +866,8 @@ export const routes = [
     "id": "route-03",
     "name": "錫口 五分埔支線",
     "subtitle": "追溯五分埔支線與象山水系",
-    "color": "#F97316",
-    "colorDark": "#C2410C",
+    "color": "#A05C42",
+    "colorDark": "#7A4230",
     "startStation": "象山站周邊",
     "stationCount": 12,
     "stations": [
@@ -1243,8 +1243,8 @@ export const routes = [
     "id": "route-04",
     "name": "東西神 三大排水系",
     "subtitle": "台北101腳下的地質與水文密碼",
-    "color": "#A855F7",
-    "colorDark": "#7E22CE",
+    "color": "#8A724A",
+    "colorDark": "#6A5434",
     "startStation": "象山公園",
     "stationCount": 16,
     "stations": [

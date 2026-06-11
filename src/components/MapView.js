@@ -63,10 +63,10 @@ function buildPolyline(route) {
 
 // ── Route labels for the control panel ─────────────────────
 const ROUTE_LABELS = [
-  { emoji: '🔵', label: '路線一：瑠公圳水泱泱' },
-  { emoji: '🟢', label: '路線二：信義之源 陂水之觀' },
-  { emoji: '🟠', label: '路線三：錫口 五分埔支線' },
-  { emoji: '🟣', label: '路線四：東西神 三大排水系' },
+  { emoji: '🩵', label: '路線一：瑠公圳水泱泱' },
+  { emoji: '🌿', label: '路線二：信義之源 陂水之觀' },
+  { emoji: '🟤', label: '路線三：錫口 五分埔支線' },
+  { emoji: '🌾', label: '路線四：東西神 三大排水系' },
 ];
 
 // ── FitBounds helper component ─────────────────────────────
@@ -277,8 +277,8 @@ export default function MapView({ onStartTour }) {
         className={`
           absolute top-3 right-3 z-[1000]
           bg-white/95 backdrop-blur-md
-          border border-blue-900/10 rounded-2xl
-          shadow-xl text-slate-800
+          border border-sky-200/60 rounded-2xl
+          shadow-md text-slate-800
           transition-all duration-300 ease-in-out
           ${expandPanel ? 'w-72 p-5' : 'w-12 h-12 p-0'}
           max-h-[calc(100dvh-24px)] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]
@@ -291,7 +291,7 @@ export default function MapView({ onStartTour }) {
           className={`
             flex items-center justify-center
             ${expandPanel ? 'w-full mb-3' : 'w-12 h-12'}
-            rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-900
+            rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800
             transition-colors duration-200
             text-lg cursor-pointer font-bold
           `}
@@ -302,7 +302,7 @@ export default function MapView({ onStartTour }) {
 
         {expandPanel && (
           <div id="layer-control-panel-content" className="w-full">
-            <h3 className="text-base font-bold mb-3 tracking-wide text-blue-900">
+            <h3 className="text-base font-bold mb-3 tracking-wide text-slate-700" style={{ fontFamily: 'var(--font-serif)' }}>
               圖層控制
             </h3>
 
@@ -501,11 +501,11 @@ export default function MapView({ onStartTour }) {
           absolute top-[72px] right-3 z-[1000]
           w-12 h-12 rounded-2xl
           bg-white/95 backdrop-blur-md
-          border border-blue-900/10 shadow-lg
+          border border-sky-200/60 shadow-md
           flex items-center justify-center
           text-2xl transition-all duration-200
-          hover:bg-blue-50 active:scale-95
-          ${locating ? 'animate-pulse text-blue-400' : 'text-blue-900'}
+          hover:bg-sky-50 active:scale-95
+          ${locating ? 'animate-pulse text-sky-400' : 'text-sky-700'}
         `}
         title="取得目前位置"
       >
