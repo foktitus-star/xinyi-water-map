@@ -504,15 +504,71 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
     }
   };
 
+  const handleResetForm = () => {
+    setDescription('');
+    setSelectedTags([]);
+    setPhotoBase64(null);
+    setPhotoFilename('');
+    setPhotoExif(null);
+    setStripExifGps(false);
+    setIsDragOver(false);
+    setIsDescribingImage(false);
+    setImageDescribeError('');
+    setIsDetectingFaces(false);
+    setFaceDetectionWarning(false);
+    setDetectedFaces([]);
+
+    setPhotoBase64_2(null);
+    setPhotoFilename_2('');
+    setPhotoExif_2(null);
+    setStripExifGps_2(false);
+    setIsDragOver_2(false);
+    setIsDescribingImage_2(false);
+    setImageDescribeError_2('');
+    setIsDetectingFaces_2(false);
+    setFaceDetectionWarning_2(false);
+    setDetectedFaces_2([]);
+
+    setIsListening(false);
+    setIsVoiceUsed(false);
+    setAiSummary('');
+    setIsSummarizing(false);
+    setShowSummaryCard(false);
+    setSummarizeError('');
+    setIsSubmitting(false);
+    setIsSuccess(false);
+  };
+
   if (isSuccess) {
     return (
-      <div className="p-4 text-center">
-        <div className="text-4xl mb-2">🎉</div>
-        <h4 className="text-lg font-bold text-green-700">感謝您的分享！</h4>
-        <p className="text-sm text-slate-500 mt-1">資料已成功送出。</p>
+      <div className="p-6 text-center space-y-4">
+        <div className="text-5xl animate-bounce">🎉</div>
+        <div>
+          <h4 className="text-xl font-black text-green-700">感謝您的分享！</h4>
+          <p className="text-sm text-slate-500 mt-2">資料已成功送出。</p>
+        </div>
+        <div className="pt-4 flex flex-col gap-2 max-w-xs mx-auto">
+          <button
+            type="button"
+            onClick={handleResetForm}
+            className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-all shadow-md active:scale-98 cursor-pointer"
+          >
+            再次填寫表單 📝
+          </button>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl font-bold text-sm transition-all cursor-pointer"
+            >
+              返回地圖 🗺️
+            </button>
+          )}
+        </div>
       </div>
     );
   }
+
 
   return (
     <div className="p-2 min-w-[280px]">
