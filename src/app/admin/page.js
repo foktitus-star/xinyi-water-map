@@ -364,12 +364,12 @@ export default function AdminPage() {
                           {/* EXIF parameters Inspector (CRITICAL FEATURE) */}
                           <div className="p-3 bg-blue-950/20 border border-blue-500/10 rounded-xl space-y-2">
                             <div className="text-[10px] text-blue-400 font-bold tracking-wider flex items-center gap-1">
-                              <span>📸</span> <span>相片 EXIF 後設資料分析：</span>
+                              <span>📸</span> <span>相片 ① EXIF 後設資料分析：</span>
                             </div>
                             
                             <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
                               <div className="bg-slate-950/50 p-1.5 rounded border border-white/5">
-                                <span className="text-slate-500 block mb-0.5">攝像裝置 Make/Model</span>
+                                <span className="text-slate-500 block mb-0.5">裝置 Make/Model</span>
                                 <span className="text-slate-300 font-bold truncate block">{record.photo_exif_device || '❌ 無 EXIF 設備資訊'}</span>
                               </div>
                               <div className="bg-slate-950/50 p-1.5 rounded border border-white/5">
@@ -378,7 +378,7 @@ export default function AdminPage() {
                               </div>
                               <div className="bg-slate-950/50 p-1.5 rounded border border-white/5 col-span-2 flex items-center justify-between">
                                 <div>
-                                  <span className="text-slate-500 block mb-0.5">照片內置 GPS 座標</span>
+                                  <span className="text-slate-500 block mb-0.5">內置 GPS 座標</span>
                                   <span className="text-slate-300 font-bold block">
                                     {record.photo_exif_latitude && record.photo_exif_longitude
                                       ? `${record.photo_exif_latitude}, ${record.photo_exif_longitude}`
@@ -388,6 +388,60 @@ export default function AdminPage() {
                                 {record.photo_exif_latitude && record.photo_exif_longitude && (
                                   <a 
                                     href={`https://www.openstreetmap.org/?mlat=${record.photo_exif_latitude}&mlon=${record.photo_exif_longitude}#map=17/${record.photo_exif_latitude}/${record.photo_exif_longitude}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[9px] bg-blue-600 hover:bg-blue-500 text-white font-bold px-2 py-1 rounded transition-colors"
+                                  >
+                                    🗺️ 地圖比對
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Photo 2 & EXIF 2 Section */}
+                      {record.photo_url_2 && (
+                        <div className="space-y-2 mb-2">
+                          <div className="relative rounded-xl overflow-hidden border border-white/10 group aspect-video max-h-44 flex items-center justify-center bg-slate-950">
+                            <img
+                              src={record.photo_url_2}
+                              alt="Upload feedback preview 2"
+                              className="object-contain w-full h-full"
+                              onError={(e) => {
+                                e.target.src = 'https://placehold.co/400x300/1e293b/94a3b8?text=Image+Load+Failed';
+                              }}
+                            />
+                          </div>
+
+                          {/* EXIF 2 parameters Inspector */}
+                          <div className="p-3 bg-blue-950/20 border border-blue-500/10 rounded-xl space-y-2">
+                            <div className="text-[10px] text-blue-400 font-bold tracking-wider flex items-center gap-1">
+                              <span>📸</span> <span>相片 ② EXIF 後設資料分析：</span>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
+                              <div className="bg-slate-950/50 p-1.5 rounded border border-white/5">
+                                <span className="text-slate-500 block mb-0.5">裝置 Make/Model</span>
+                                <span className="text-slate-300 font-bold truncate block">{record.photo_exif_2_device || '❌ 無 EXIF 設備資訊'}</span>
+                              </div>
+                              <div className="bg-slate-950/50 p-1.5 rounded border border-white/5">
+                                <span className="text-slate-500 block mb-0.5">拍攝時間 DateTime</span>
+                                <span className="text-slate-300 font-bold block">{record.photo_exif_2_dateTime || '❌ 無 EXIF 拍攝時間'}</span>
+                              </div>
+                              <div className="bg-slate-950/50 p-1.5 rounded border border-white/5 col-span-2 flex items-center justify-between">
+                                <div>
+                                  <span className="text-slate-500 block mb-0.5">內置 GPS 座標</span>
+                                  <span className="text-slate-300 font-bold block">
+                                    {record.photo_exif_2_latitude && record.photo_exif_2_longitude
+                                      ? `${record.photo_exif_2_latitude}, ${record.photo_exif_2_longitude}`
+                                      : '❌ 無 GPS 定位資訊'}
+                                  </span>
+                                </div>
+                                {record.photo_exif_2_latitude && record.photo_exif_2_longitude && (
+                                  <a 
+                                    href={`https://www.openstreetmap.org/?mlat=${record.photo_exif_2_latitude}&mlon=${record.photo_exif_2_longitude}#map=17/${record.photo_exif_2_latitude}/${record.photo_exif_2_longitude}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-[9px] bg-blue-600 hover:bg-blue-500 text-white font-bold px-2 py-1 rounded transition-colors"

@@ -21,6 +21,12 @@ const MapView = dynamic(() => import('@/components/MapView'), {
   ),
 });
 
+const NodeFeedbackForm = dynamic(() => import('@/components/forms/NodeFeedbackForm'), {
+  ssr: false,
+  loading: () => <p className="text-center py-6 text-slate-400">載入表單中...</p>
+});
+
+
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState('map'); // 'map', 'layers', 'form', 'history', 'changelog'
   const [fontSize, setFontSize] = useState('medium'); // 'small', 'medium', 'large'
@@ -32,6 +38,25 @@ export default function HomePage() {
   // 動態更新日誌狀態
   const [changelog, setChangelog] = useState([]);
   const [loadingChangelog, setLoadingChangelog] = useState(false);
+  const [userLocation, setUserLocation] = useState({ lat: 25.033, lng: 121.565 });
+
+  useEffect(() => {
+    if (activeTab === 'form' && typeof window !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.warn('Geolocation failed, using default coordinates:', error.message);
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    }
+  }, [activeTab]);
+
 
   useEffect(() => {
     async function loadChangelog() {
@@ -436,13 +461,20 @@ export default function HomePage() {
             </header>
             <div className="space-y-6">
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                <p className="text-slate-400 italic text-center py-12">表單內容加載中... (Form components will be placed here)</p>
+                <NodeFeedbackForm
+                  lat={userLocation.lat}
+                  lng={userLocation.lng}
+                  stationId=""
+                  stationName="水道/地景環境觀測"
+                  onClose={() => setActiveTab('map')}
+                />
               </div>
             </div>
             <button 
               onClick={() => setActiveTab('map')}
-              className="mt-8 px-6 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors"
+              className="mt-4 px-6 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors"
             >
+
               返回地圖
             </button>
           </div>

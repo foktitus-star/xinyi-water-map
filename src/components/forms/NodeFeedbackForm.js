@@ -1,27 +1,39 @@
 import { useState, useRef, useEffect } from 'react';
 import exifr from 'exifr';
-import { useMap } from 'react-leaflet';
 
-const TAGS = ['歷史', '水源', '生態', '氣味', '地景', '其他'];
+const TAGS = ['歷史', '水源', '生態', '氣味', '地景', '路況實境', '熱成像', '其他'];
 
 export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onClose }) {
-  const map = useMap();
   const [description, setDescription] = useState('');
   const [selectedTags, setSelectedTags] = useState([]);
-  const [photoBase64, setPhotoBase64] = useState(null);
-  const [photoFilename, setPhotoFilename] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const fileInputRef = useRef(null);
 
-  // EXIF 照片資訊狀態
+  // 照片 ① 狀態
+  const [photoBase64, setPhotoBase64] = useState(null);
+  const [photoFilename, setPhotoFilename] = useState('');
   const [photoExif, setPhotoExif] = useState(null);
-  const [stripExifGps, setStripExifGps] = useState(false); // 使用者選擇是否移除 EXIF GPS
+  const [stripExifGps, setStripExifGps] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
-
-  // AI 圖片轉譯狀態
   const [isDescribingImage, setIsDescribingImage] = useState(false);
   const [imageDescribeError, setImageDescribeError] = useState('');
+  const [isDetectingFaces, setIsDetectingFaces] = useState(false);
+  const [faceDetectionWarning, setFaceDetectionWarning] = useState(false);
+  const [detectedFaces, setDetectedFaces] = useState([]);
+  const fileInputRef = useRef(null);
+
+  // 照片 ② 狀態 (新增)
+  const [photoBase64_2, setPhotoBase64_2] = useState(null);
+  const [photoFilename_2, setPhotoFilename_2] = useState('');
+  const [photoExif_2, setPhotoExif_2] = useState(null);
+  const [stripExifGps_2, setStripExifGps_2] = useState(false);
+  const [isDragOver_2, setIsDragOver_2] = useState(false);
+  const [isDescribingImage_2, setIsDescribingImage_2] = useState(false);
+  const [imageDescribeError_2, setImageDescribeError_2] = useState('');
+  const [isDetectingFaces_2, setIsDetectingFaces_2] = useState(false);
+  const [faceDetectionWarning_2, setFaceDetectionWarning_2] = useState(false);
+  const [detectedFaces_2, setDetectedFaces_2] = useState([]);
+  const fileInputRef_2 = useRef(null);
 
   // 語音與 AI 相關狀態
   const [isListening, setIsListening] = useState(false);
@@ -32,11 +44,6 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
   const [showSummaryCard, setShowSummaryCard] = useState(false);
   const [summarizeError, setSummarizeError] = useState('');
   const recognitionRef = useRef(null);
-
-  // 敏感內容（人臉）自動偵測狀態
-  const [isDetectingFaces, setIsDetectingFaces] = useState(false);
-  const [faceDetectionWarning, setFaceDetectionWarning] = useState(false);
-  const [detectedFaces, setDetectedFaces] = useState([]);
 
   // 偵測瀏覽器語音支援度
   useEffect(() => {
@@ -62,7 +69,6 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
-      // 延遲更新狀態，避免 DOM 元素立即被 React 卸載導致 Leaflet 誤認點擊在彈出視窗外而將其關閉
       setTimeout(() => {
         setIsListening(false);
       }, 50);
@@ -75,7 +81,7 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
     try {
       const rec = new SpeechRecognition();
       rec.continuous = true;
-      rec.interimResults = false; // 僅取最終結果，避免頻繁觸發 React 狀態更新造成輸入框卡頓
+      rec.interimResults = false;
       rec.lang = 'zh-TW';
 
       rec.onstart = () => {
@@ -84,7 +90,6 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
       };
 
       rec.onend = () => {
-        // 延遲更新狀態確保 DOM 卸載不會與點擊事件冒泡衝突
         setTimeout(() => {
           setIsListening(false);
         }, 50);
@@ -174,9 +179,75 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
     }
   };
 
+  // 擷取 EXIF
+  const extractExif = async (file) => {
+    try {
+      const exifData = await exifr.parse(file);
+      if (exifData) {
+        const exifResult = {};
+        if (exifData.latitude && exifData.longitude) {
+          exifResult.latitude = Math.round(exifData.latitude * 1000000) / 1000000;
+          exifResult.longitude = Math.round(exifData.longitude * 1000000) / 1000000;
+        }
+        const dateField = exifData.DateTimeOriginal || exifData.CreateDate;
+        if (dateField) {
+          exifResult.dateTime = dateField instanceof Date 
+            ? dateField.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
+            : String(dateField);
+        }
+        if (exifData.Make || exifData.Model) {
+          exifResult.device = [exifData.Make, exifData.Model].filter(Boolean).join(' ');
+        }
+        if (Object.keys(exifResult).length > 0) {
+          return exifResult;
+        }
+      }
+    } catch (exifErr) {
+      console.warn('EXIF extraction failed:', exifErr.message);
+    }
+    return null;
+  };
+
+  // 壓縮圖片
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1024;
+          const MAX_HEIGHT = 1024;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.7));
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // 照片 ① 處理
   const processFile = async (file) => {
     if (!file) return;
-
     setPhotoFilename(file.name);
     setPhotoExif(null);
     setImageDescribeError('');
@@ -184,110 +255,43 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
     setFaceDetectionWarning(false);
     setDetectedFaces([]);
 
-    // 從原始檔案提取 EXIF 資訊（在壓縮前讀取，因為壓縮會移除 EXIF）
-    try {
-      const exifData = await exifr.parse(file);
-      if (exifData) {
-        const exifResult = {};
-        // GPS 座標（exifr 自動轉換為十進位格式）
-        if (exifData.latitude && exifData.longitude) {
-          exifResult.latitude = Math.round(exifData.latitude * 1000000) / 1000000;
-          exifResult.longitude = Math.round(exifData.longitude * 1000000) / 1000000;
-        }
-        // 拍攝時間
-        const dateField = exifData.DateTimeOriginal || exifData.CreateDate;
-        if (dateField) {
-          exifResult.dateTime = dateField instanceof Date 
-            ? dateField.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
-            : String(dateField);
-        }
-        // 設備資訊
-        if (exifData.Make || exifData.Model) {
-          exifResult.device = [exifData.Make, exifData.Model].filter(Boolean).join(' ');
-        }
-        // 只有在有任何資訊時才設定
-        if (Object.keys(exifResult).length > 0) {
-          setPhotoExif(exifResult);
-        }
-      }
-    } catch (exifErr) {
-      // EXIF 讀取失敗時靜默處理，不影響照片上傳
-      console.warn('EXIF extraction failed (non-critical):', exifErr.message);
-    }
+    const exif = await extractExif(file);
+    if (exif) setPhotoExif(exif);
 
-    // 壓縮圖片並轉為 Base64
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 1024;
-        const MAX_HEIGHT = 1024;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // Compress to JPEG with 0.7 quality
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-        setPhotoBase64(dataUrl);
-        detectFacesAndPrompt(dataUrl);
-      };
-      img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
+    const base64 = await compressImage(file);
+    setPhotoBase64(base64);
+    detectFacesAndPrompt(base64, 1);
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    processFile(file);
+  // 照片 ② 處理
+  const processFile_2 = async (file) => {
+    if (!file) return;
+    setPhotoFilename_2(file.name);
+    setPhotoExif_2(null);
+    setImageDescribeError_2('');
+    setIsDetectingFaces_2(false);
+    setFaceDetectionWarning_2(false);
+    setDetectedFaces_2([]);
+
+    const exif = await extractExif(file);
+    if (exif) setPhotoExif_2(exif);
+
+    const base64 = await compressImage(file);
+    setPhotoBase64_2(base64);
+    detectFacesAndPrompt(base64, 2);
   };
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(true);
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(false);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(false);
-    
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) {
-      processFile(file);
+  // 臉部偵測
+  const detectFacesAndPrompt = async (dataUrl, photoIndex) => {
+    if (photoIndex === 1) {
+      setIsDetectingFaces(true);
+      setFaceDetectionWarning(false);
+      setDetectedFaces([]);
     } else {
-      alert('請拖移照片檔案進行上傳！');
+      setIsDetectingFaces_2(true);
+      setFaceDetectionWarning_2(false);
+      setDetectedFaces_2([]);
     }
-  };
-
-  // 敏感內容偵測：非同步呼叫 Gemini 進行人臉偵測
-  const detectFacesAndPrompt = async (dataUrl) => {
-    setIsDetectingFaces(true);
-    setFaceDetectionWarning(false);
-    setDetectedFaces([]);
 
     try {
       const response = await fetch('/api/detect-faces', {
@@ -297,19 +301,28 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
       });
       const data = await response.json();
       if (data.success && data.hasFaces && data.faces && data.faces.length > 0) {
-        setDetectedFaces(data.faces);
-        setFaceDetectionWarning(true);
+        if (photoIndex === 1) {
+          setDetectedFaces(data.faces);
+          setFaceDetectionWarning(true);
+        } else {
+          setDetectedFaces_2(data.faces);
+          setFaceDetectionWarning_2(true);
+        }
       }
     } catch (err) {
       console.warn('Face detection failed (non-critical):', err.message);
     } finally {
-      setIsDetectingFaces(false);
+      if (photoIndex === 1) {
+        setIsDetectingFaces(false);
+      } else {
+        setIsDetectingFaces_2(false);
+      }
     }
   };
 
-  // 馬賽克局部處理：在 canvas 上將偵測到的人臉區域像素化
-  const handleApplyBlur = () => {
-    if (!photoBase64 || detectedFaces.length === 0) return;
+  // 套用馬賽克
+  const applyBlur = (base64Url, facesList, photoIndex) => {
+    if (!base64Url || facesList.length === 0) return;
 
     const img = new Image();
     img.onload = () => {
@@ -318,15 +331,12 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
       canvas.height = img.height;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0);
-
-      // 關閉平滑以達到馬賽克效果
       ctx.imageSmoothingEnabled = false;
 
-      detectedFaces.forEach(face => {
+      facesList.forEach(face => {
         if (!face.box_2d) return;
         const [ymin_raw, xmin_raw, ymax_raw, xmax_raw] = face.box_2d;
         
-        // 將 [0, 1000] 區間的比例坐標換算為 canvas 實際尺寸
         const ymin = ymin_raw / 1000;
         const xmin = xmin_raw / 1000;
         const ymax = ymax_raw / 1000;
@@ -337,7 +347,6 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
         const w = (xmax - xmin) * canvas.width;
         const h = (ymax - ymin) * canvas.height;
 
-        // 1. 將馬賽克格點大小調小，使馬賽克更精細 (由 6 比例提高到 14，更小格)
         const size = Math.max(4, Math.round(Math.min(w, h) / 14));
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = Math.max(1, w / size);
@@ -345,10 +354,8 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
         const tempCtx = tempCanvas.getContext('2d');
         tempCtx.imageSmoothingEnabled = false;
 
-        // 縮小繪製到暫存 canvas
         tempCtx.drawImage(canvas, x, y, w, h, 0, 0, tempCanvas.width, tempCanvas.height);
         
-        // 2. 使用橢圓剪裁路徑，只對人臉部分進行馬賽克處理，不要遮擋到背景與肩膀
         ctx.save();
         ctx.beginPath();
         const centerX = x + w / 2;
@@ -358,37 +365,45 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
         ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
         ctx.clip();
 
-        // 放大繪製回原畫布，僅繪製在橢圓範圍內
         ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, x, y, w, h);
-        
         ctx.restore();
       });
 
-      // 輸出新的馬賽克照片
       const blurredDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-      setPhotoBase64(blurredDataUrl);
-      setFaceDetectionWarning(false);
-      setDetectedFaces([]);
+      if (photoIndex === 1) {
+        setPhotoBase64(blurredDataUrl);
+        setFaceDetectionWarning(false);
+        setDetectedFaces([]);
+      } else {
+        setPhotoBase64_2(blurredDataUrl);
+        setFaceDetectionWarning_2(false);
+        setDetectedFaces_2([]);
+      }
     };
-    img.src = photoBase64;
+    img.src = base64Url;
   };
 
-  // AI 圖片轉譯：將照片送至 Gemini 多模態 API 進行文字辨識與場景描述
-  const handleDescribeImage = async () => {
-    if (!photoBase64) {
-      alert('請先上傳一張照片。');
+  // AI 圖片轉譯
+  const handleDescribeImage = async (base64Url, photoIndex) => {
+    if (!base64Url) {
+      alert('請先上傳照片。');
       return;
     }
 
-    setIsDescribingImage(true);
-    setImageDescribeError('');
+    if (photoIndex === 1) {
+      setIsDescribingImage(true);
+      setImageDescribeError('');
+    } else {
+      setIsDescribingImage_2(true);
+      setImageDescribeError_2('');
+    }
 
     try {
       const response = await fetch('/api/describe-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          imageBase64: photoBase64,
+          imageBase64: base64Url,
           mimeType: 'image/jpeg'
         })
       });
@@ -410,25 +425,33 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
         throw new Error(errorMsg);
       }
 
-      // 將 AI 描述插入文字框（追加，不覆蓋）
       if (resData.description) {
         setDescription(prev => {
           const trimmed = prev.trim();
+          const prefix = photoIndex === 1 ? '📷 照片 ① 描述' : '📷 照片 ② 描述';
           return trimmed 
-            ? `${trimmed}\n\n📷 AI 圖片描述：${resData.description}` 
-            : resData.description;
+            ? `${trimmed}\n\n${prefix}：${resData.description}` 
+            : `${prefix}：${resData.description}`;
         });
       }
     } catch (err) {
       console.error('Describe image error:', err);
-      setImageDescribeError(err.message);
+      if (photoIndex === 1) {
+        setImageDescribeError(err.message);
+      } else {
+        setImageDescribeError_2(err.message);
+      }
     } finally {
-      setIsDescribingImage(false);
+      if (photoIndex === 1) {
+        setIsDescribingImage(false);
+      } else {
+        setIsDescribingImage_2(false);
+      }
     }
   };
 
   const handleSubmit = async () => {
-    if (!description.trim() && selectedTags.length === 0 && !photoBase64) {
+    if (!description.trim() && selectedTags.length === 0 && !photoBase64 && !photoBase64_2) {
       alert('請至少填寫文字、選擇標籤或上傳照片');
       return;
     }
@@ -447,11 +470,16 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
       tags: selectedTags,
       photo_base64: photoBase64,
       photo_filename: photoFilename,
+      photo_base64_2: photoBase64_2,
+      photo_filename_2: photoFilename_2,
       ai_summary: aiSummary.trim(),
       is_voice: isVoiceUsed,
       photo_exif: stripExifGps 
         ? (photoExif ? { ...photoExif, latitude: '[已移除]', longitude: '[已移除]', gps_stripped: true } : null)
-        : (photoExif || null)
+        : (photoExif || null),
+      photo_exif_2: stripExifGps_2
+        ? (photoExif_2 ? { ...photoExif_2, latitude: '[已移除]', longitude: '[已移除]', gps_stripped: true } : null)
+        : (photoExif_2 || null)
     };
 
     try {
@@ -468,7 +496,6 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
       setIsSuccess(true);
       setTimeout(() => {
         if (onClose) onClose();
-        else map.closePopup();
       }, 2000);
     } catch (error) {
       console.error('Submit error:', error);
@@ -490,7 +517,7 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
   return (
     <div className="p-2 min-w-[280px]">
       <h3 className="font-bold text-lg text-blue-900 border-b pb-2 mb-3">
-        {stationName || '新增標記'} <span className="text-sm text-slate-500 font-normal ml-1">提供回饋</span>
+        {stationName || '新增地景標記'} <span className="text-sm text-slate-500 font-normal ml-1">提供回饋</span>
       </h3>
 
       <div className="space-y-4 mb-4">
@@ -528,7 +555,6 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
             </div>
             
             <div className="flex gap-2">
-              {/* Web Speech API Microphone Button */}
               {isVoiceSupported && (
                 <button
                   type="button"
@@ -546,7 +572,6 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
                 </button>
               )}
 
-              {/* AI Summarize Button (only show if description has content) */}
               {description.trim() && (
                 <button
                   type="button"
@@ -570,7 +595,6 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
               className="w-full p-2 border border-slate-200 rounded-lg text-sm min-h-[85px] focus:ring-2 focus:ring-blue-500 outline-none resize-none"
             />
 
-            {/* Pulsing glowing microphone recording overlay */}
             {isListening && (
               <div 
                 className="absolute inset-0 bg-blue-50/90 backdrop-blur-xs rounded-lg flex flex-col items-center justify-center border border-blue-200 z-10 animate-fade-in"
@@ -596,7 +620,6 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
             )}
           </div>
 
-          {/* AI Polished Preview Card */}
           {showSummaryCard && (
             <div 
               className="bg-gradient-to-r from-violet-50/95 to-indigo-50/95 border border-indigo-200 rounded-lg p-3 mt-2 shadow-inner transition-all z-10 relative overflow-hidden animate-fade-in"
@@ -610,7 +633,6 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
                   type="button"
                   onClick={(e) => { 
                     e.stopPropagation(); 
-                    // 延遲更新狀態避免 DOM 卸載導致 Leaflet 關閉彈出視窗
                     setTimeout(() => {
                       setShowSummaryCard(false); 
                       setAiSummary(''); 
@@ -645,7 +667,6 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
                       onClick={(e) => {
                         e.stopPropagation();
                         setDescription(aiSummary);
-                        // 延遲更新狀態避免 DOM 卸載導致 Leaflet 關閉彈出視窗
                         setTimeout(() => {
                           setShowSummaryCard(false);
                         }, 50);
@@ -658,7 +679,6 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        // 延遲更新狀態避免 DOM 卸載導致 Leaflet 關閉彈出視窗
                         setTimeout(() => {
                           setShowSummaryCard(false);
                         }, 50);
@@ -675,174 +695,254 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
         </div>
 
 
-        {/* Photo Upload */}
-        <div>
-          <label className="block text-sm font-bold text-slate-700 mb-1">上傳照片</label>
-          <div 
-            className={`
-              border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-all
-              ${isDragOver 
-                ? 'border-blue-500 bg-blue-50/50 scale-[1.01]' 
-                : 'border-slate-300 hover:bg-slate-50 hover:border-slate-400'}
-            `}
-            onClick={() => fileInputRef.current?.click()}
-            onDragOver={handleDragOver}
-            onDragEnter={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            {photoBase64 ? (
-              <div className="relative" onClick={(e) => e.stopPropagation()}>
-                <img src={photoBase64} alt="Preview" className="max-h-32 mx-auto rounded" />
-                <button 
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    // 延遲更新狀態避免 DOM 卸載導致 Leaflet 關閉彈出視窗
-                    setTimeout(() => {
-                      setPhotoBase64(null); 
-                      setPhotoFilename(''); 
-                      setPhotoExif(null);
-                      setStripExifGps(false); // Reset EXIF GPS toggle
-                      setImageDescribeError('');
-                      setIsDetectingFaces(false);
-                      setFaceDetectionWarning(false);
-                      setDetectedFaces([]);
-                    }, 50);
-                  }}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs shadow-md cursor-pointer"
-                >
-                  ✕
-                </button>
-              </div>
-            ) : (
-              <div className="text-slate-500 flex flex-col items-center pointer-events-none">
-                <span className="text-2xl mb-1">{isDragOver ? '📥' : '📷'}</span>
-                <span className="text-xs font-semibold">
-                  {isDragOver ? '放開以匯入照片' : '點擊選擇或拖移照片至此 (自動壓縮)'}
-                </span>
-              </div>
-            )}
-            <input 
-              type="file" 
-              accept="image/*" 
-              className="hidden" 
-              ref={fileInputRef}
-              onChange={handleFileChange}
-            />
-          </div>
-
-          {/* 敏感內容 (人臉) 偵測提示 */}
-          {isDetectingFaces && (
-            <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
-              <div className="inline-block w-3.5 h-3.5 border-2 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
-              <p className="text-[10px] text-blue-700 font-semibold">正在自動偵測敏感內容 (人臉)...</p>
-            </div>
-          )}
-
-          {faceDetectionWarning && detectedFaces.length > 0 && (
-            <div className="mt-2 p-2.5 bg-rose-50 border border-rose-200 rounded-lg" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-start gap-2">
-                <span className="text-sm flex-shrink-0 mt-0.5">⚠️</span>
-                <div className="flex-1">
-                  <p className="text-[11px] font-bold text-rose-800">
-                    偵測到照片中可能含有 {detectedFaces.length} 處人臉
-                  </p>
-                  <p className="text-[10px] text-rose-600 leading-relaxed mt-0.5">
-                    為保護他人隱私，建議在公開前將人臉進行模糊或馬賽克處理。
-                  </p>
-                  <div className="mt-2 flex gap-2">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleApplyBlur();
-                      }}
-                      className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded text-[10px] font-bold transition-colors cursor-pointer"
-                    >
-                      🧩 套用馬賽克處理
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setFaceDetectionWarning(false);
-                      }}
-                      className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded text-[10px] font-medium transition-colors cursor-pointer"
-                    >
-                      忽略
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* EXIF GPS 隱私控制 */}
-          {photoExif && photoExif.latitude && (
-            <div className="mt-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-start gap-2">
-                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 mt-0.5">
-                  <input
-                    type="checkbox"
-                    checked={stripExifGps}
-                    onChange={() => {
+        {/* Photo Upload Area */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3" onClick={(e) => e.stopPropagation()}>
+          {/* Photo ① */}
+          <div className="space-y-1">
+            <label className="block text-xs font-bold text-slate-600">上傳照片 ① (必填/選填)</label>
+            <div 
+              className={`
+                border border-dashed rounded-lg p-3 text-center cursor-pointer transition-all
+                ${isDragOver 
+                  ? 'border-blue-500 bg-blue-50/50 scale-[1.01]' 
+                  : 'border-slate-300 hover:bg-slate-50 hover:border-slate-400'}
+              `}
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragOver(true); }}
+              onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragOver(true); }}
+              onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragOver(false); }}
+              onDrop={(e) => {
+                e.preventDefault(); e.stopPropagation(); setIsDragOver(false);
+                const file = e.dataTransfer.files[0];
+                if (file && file.type.startsWith('image/')) processFile(file);
+              }}
+            >
+              {photoBase64 ? (
+                <div className="relative inline-block w-full" onClick={(e) => e.stopPropagation()}>
+                  <img src={photoBase64} alt="Preview 1" className="max-h-24 mx-auto rounded object-cover" />
+                  <button 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
                       setTimeout(() => {
-                        setStripExifGps(prev => !prev);
+                        setPhotoBase64(null); 
+                        setPhotoFilename(''); 
+                        setPhotoExif(null);
+                        setStripExifGps(false);
+                        setImageDescribeError('');
+                        setIsDetectingFaces(false);
+                        setFaceDetectionWarning(false);
+                        setDetectedFaces([]);
                       }, 50);
                     }}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 bg-slate-300 peer-focus:ring-2 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
-                </label>
-                <div className="flex-1">
-                  <p className="text-[11px] font-bold text-amber-800">
-                    🔒 移除照片 GPS 定位資料
-                  </p>
-                  <p className="text-[10px] text-amber-600 leading-relaxed mt-0.5">
-                    偵測到照片含有 GPS 座標（{photoExif.latitude}, {photoExif.longitude}）。
-                    開啟此選項將在送出時移除 EXIF 中的 GPS 資料，僅保留您在地圖上標記的位置。
-                  </p>
+                    className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow-md cursor-pointer"
+                  >
+                    ✕
+                  </button>
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* AI 圖片轉譯按鈕 */}
-          {photoBase64 && (
-            <div className="mt-2" onClick={(e) => e.stopPropagation()}>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); handleDescribeImage(); }}
-                disabled={isDescribingImage}
-                className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white rounded-lg text-xs font-bold shadow-sm transition-all disabled:opacity-50 cursor-pointer"
-                title="使用 Gemini AI 分析照片中的文字與場景"
-              >
-                {isDescribingImage ? (
-                  <>
-                    <span className="animate-spin">⏳</span>
-                    <span>AI 正在分析圖片中...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>📝</span>
-                    <span>AI 圖片轉譯</span>
-                  </>
-                )}
-              </button>
-              {imageDescribeError && (
-                <div className="text-[10px] text-red-600 font-bold mt-1 px-1">
-                  ⚠️ {imageDescribeError}
+              ) : (
+                <div className="text-slate-400 flex flex-col items-center pointer-events-none py-1">
+                  <span className="text-lg">📷</span>
+                  <span className="text-[10px] font-semibold">照片 ①</span>
                 </div>
               )}
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                ref={fileInputRef}
+                onChange={(e) => processFile(e.target.files[0])}
+              />
             </div>
-          )}
+
+            {/* Photo ① 敏感內容偵測 */}
+            {isDetectingFaces && (
+              <div className="p-1.5 bg-blue-50 border border-blue-200 rounded text-[9px] text-blue-700 flex items-center gap-1.5">
+                <div className="inline-block w-2.5 h-2.5 border border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
+                <span>偵測人臉中...</span>
+              </div>
+            )}
+
+            {faceDetectionWarning && detectedFaces.length > 0 && (
+              <div className="p-2 bg-rose-50 border border-rose-200 rounded text-[9px] text-rose-800 space-y-1">
+                <p className="font-bold">⚠️ 偵測到 {detectedFaces.length} 處人臉</p>
+                <div className="flex gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => applyBlur(photoBase64, detectedFaces, 1)}
+                    className="px-2 py-0.5 bg-rose-600 hover:bg-rose-500 text-white rounded text-[9px] font-bold"
+                  >
+                    🧩 馬賽克
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFaceDetectionWarning(false)}
+                    className="px-2 py-0.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded text-[9px]"
+                  >
+                    忽略
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Photo ① EXIF GPS 隱私控制 */}
+            {photoExif && photoExif.latitude && (
+              <div className="p-2 bg-amber-50 border border-amber-200 rounded text-[9px] text-amber-800 flex items-start gap-1.5">
+                <input
+                  type="checkbox"
+                  checked={stripExifGps}
+                  onChange={() => setStripExifGps(prev => !prev)}
+                  className="mt-0.5"
+                />
+                <div>
+                  <p className="font-bold">🔒 移除照片 ① GPS ({photoExif.latitude}, {photoExif.longitude})</p>
+                </div>
+              </div>
+            )}
+
+            {/* Photo ① AI 圖片轉譯 */}
+            {photoBase64 && (
+              <div className="mt-1">
+                <button
+                  type="button"
+                  onClick={() => handleDescribeImage(photoBase64, 1)}
+                  disabled={isDescribingImage}
+                  className="w-full py-1 bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded text-[9px] font-bold disabled:opacity-50"
+                >
+                  {isDescribingImage ? '分析中...' : '📝 AI 照片 ① 轉譯'}
+                </button>
+                {imageDescribeError && (
+                  <p className="text-[8px] text-red-600 font-bold mt-0.5">⚠️ {imageDescribeError}</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Photo ② */}
+          <div className="space-y-1">
+            <label className="block text-xs font-bold text-slate-600">上傳照片 ② (選填)</label>
+            <div 
+              className={`
+                border border-dashed rounded-lg p-3 text-center cursor-pointer transition-all
+                ${isDragOver_2 
+                  ? 'border-blue-500 bg-blue-50/50 scale-[1.01]' 
+                  : 'border-slate-300 hover:bg-slate-50 hover:border-slate-400'}
+              `}
+              onClick={() => fileInputRef_2.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragOver_2(true); }}
+              onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragOver_2(true); }}
+              onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragOver_2(false); }}
+              onDrop={(e) => {
+                e.preventDefault(); e.stopPropagation(); setIsDragOver_2(false);
+                const file = e.dataTransfer.files[0];
+                if (file && file.type.startsWith('image/')) processFile_2(file);
+              }}
+            >
+              {photoBase64_2 ? (
+                <div className="relative inline-block w-full" onClick={(e) => e.stopPropagation()}>
+                  <img src={photoBase64_2} alt="Preview 2" className="max-h-24 mx-auto rounded object-cover" />
+                  <button 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      setTimeout(() => {
+                        setPhotoBase64_2(null); 
+                        setPhotoFilename_2(''); 
+                        setPhotoExif_2(null);
+                        setStripExifGps_2(false);
+                        setImageDescribeError_2('');
+                        setIsDetectingFaces_2(false);
+                        setFaceDetectionWarning_2(false);
+                        setDetectedFaces_2([]);
+                      }, 50);
+                    }}
+                    className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow-md cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <div className="text-slate-400 flex flex-col items-center pointer-events-none py-1">
+                  <span className="text-lg">📷</span>
+                  <span className="text-[10px] font-semibold">照片 ② (加選)</span>
+                </div>
+              )}
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                ref={fileInputRef_2}
+                onChange={(e) => processFile_2(e.target.files[0])}
+              />
+            </div>
+
+            {/* Photo ② 敏感內容偵測 */}
+            {isDetectingFaces_2 && (
+              <div className="p-1.5 bg-blue-50 border border-blue-200 rounded text-[9px] text-blue-700 flex items-center gap-1.5">
+                <div className="inline-block w-2.5 h-2.5 border border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
+                <span>偵測人臉中...</span>
+              </div>
+            )}
+
+            {faceDetectionWarning_2 && detectedFaces_2.length > 0 && (
+              <div className="p-2 bg-rose-50 border border-rose-200 rounded text-[9px] text-rose-800 space-y-1">
+                <p className="font-bold">⚠️ 偵測到 {detectedFaces_2.length} 處人臉</p>
+                <div className="flex gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => applyBlur(photoBase64_2, detectedFaces_2, 2)}
+                    className="px-2 py-0.5 bg-rose-600 hover:bg-rose-500 text-white rounded text-[9px] font-bold"
+                  >
+                    🧩 馬賽克
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFaceDetectionWarning_2(false)}
+                    className="px-2 py-0.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded text-[9px]"
+                  >
+                    忽略
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Photo ② EXIF GPS 隱私控制 */}
+            {photoExif_2 && photoExif_2.latitude && (
+              <div className="p-2 bg-amber-50 border border-amber-200 rounded text-[9px] text-amber-800 flex items-start gap-1.5">
+                <input
+                  type="checkbox"
+                  checked={stripExifGps_2}
+                  onChange={() => setStripExifGps_2(prev => !prev)}
+                  className="mt-0.5"
+                />
+                <div>
+                  <p className="font-bold">🔒 移除照片 ② GPS ({photoExif_2.latitude}, {photoExif_2.longitude})</p>
+                </div>
+              </div>
+            )}
+
+            {/* Photo ② AI 圖片轉譯 */}
+            {photoBase64_2 && (
+              <div className="mt-1">
+                <button
+                  type="button"
+                  onClick={() => handleDescribeImage(photoBase64_2, 2)}
+                  disabled={isDescribingImage_2}
+                  className="w-full py-1 bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded text-[9px] font-bold disabled:opacity-50"
+                >
+                  {isDescribingImage_2 ? '分析中...' : '📝 AI 照片 ② 轉譯'}
+                </button>
+                {imageDescribeError_2 && (
+                  <p className="text-[8px] text-red-600 font-bold mt-0.5">⚠️ {imageDescribeError_2}</p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
       
       <button
         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg disabled:opacity-50 flex justify-center items-center transition-colors"
         onClick={handleSubmit}
-        disabled={isSubmitting || (!description.trim() && selectedTags.length === 0 && !photoBase64)}
+        disabled={isSubmitting || (!description.trim() && selectedTags.length === 0 && !photoBase64 && !photoBase64_2)}
       >
         {isSubmitting ? '處理中 (若含照片可能需要較久)...' : '送出回饋'}
       </button>

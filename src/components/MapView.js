@@ -387,6 +387,21 @@ export default function MapView({ onStartTour }) {
                   </div>
                 )}
 
+                {/* Photo 2 if present */}
+                {marker.photo_url_2 && (
+                  <div className="rounded-lg overflow-hidden border border-slate-100 mb-2 max-h-36 flex items-center justify-center bg-slate-50">
+                    <img 
+                      src={marker.photo_url_2} 
+                      alt="Community geolandscape 2" 
+                      className="object-contain w-full h-full max-h-36"
+                      onError={(e) => {
+                        e.target.style.display = 'none'; // Hide if failed
+                      }}
+                    />
+                  </div>
+                )}
+
+
                 {/* User Story Description */}
                 <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap mb-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100 font-sans">
                   {marker.description}
