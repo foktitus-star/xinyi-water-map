@@ -433,7 +433,7 @@ export default function MapView({ onStartTour }) {
           border border-sky-200/60 rounded-2xl
           shadow-md text-slate-800
           transition-all duration-300 ease-in-out
-          ${expandPanel ? 'w-72 p-5 flex flex-col max-h-[calc(100dvh-24px)]' : 'w-12 h-12 p-0 overflow-hidden'}
+          ${expandPanel ? 'w-[88vw] max-w-72 p-4 md:p-5 flex flex-col max-h-[58dvh] md:max-h-[calc(100dvh-24px)]' : 'w-12 h-12 p-0 overflow-hidden'}
         `}
       >
         {/* Toggle button */}

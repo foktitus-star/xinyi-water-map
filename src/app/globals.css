@@ -103,7 +103,7 @@ body {
   margin: 0 !important;
   width: auto !important;
   min-width: 340px !important;
-  max-height: 70dvh;
+  max-height: 52dvh;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(14, 165, 233, 0.3) transparent;

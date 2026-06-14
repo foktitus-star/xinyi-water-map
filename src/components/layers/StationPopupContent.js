@@ -1,29 +1,54 @@
 import { useState } from 'react';
+import { useMap } from 'react-leaflet';
 import { BASE_URL } from '@/data/routeData';
 import NodeFeedbackForm from '../forms/NodeFeedbackForm';
 
 export default function StationPopupContent({ station, routeColor }) {
   const [showFeedback, setShowFeedback] = useState(false);
+  const map = useMap();
 
   if (showFeedback) {
     return (
-      <NodeFeedbackForm 
-        lat={station.lat} 
-        lng={station.lng} 
-        stationId={station.id} 
-        stationName={station.name} 
-        onClose={() => setShowFeedback(false)} 
+      <NodeFeedbackForm
+        lat={station.lat}
+        lng={station.lng}
+        stationId={station.id}
+        stationName={station.name}
+        onClose={() => setShowFeedback(false)}
       />
     );
   }
 
   return (
     <div className="popup-content">
-      <div
-        className="popup-badge"
-        style={{ background: routeColor }}
-      >
-        {station.badge || station.id}
+      <div className="flex items-center justify-between mb-2 gap-2">
+        <div
+          className="popup-badge"
+          style={{ background: routeColor, margin: 0 }}
+        >
+          {station.badge || station.id}
+        </div>
+        <button
+          onClick={() => map.closePopup()}
+          aria-label="關閉"
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: '50%',
+            border: '1px solid rgba(0,0,0,0.12)',
+            background: 'rgba(0,0,0,0.06)',
+            color: '#64748b',
+            fontSize: 13,
+            lineHeight: 1,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          ✕
+        </button>
       </div>
       <h3 className="popup-title">{station.name}</h3>
       <p className="popup-hook">{station.hook}</p>
@@ -49,7 +74,7 @@ export default function StationPopupContent({ station, routeColor }) {
           ))}
         </div>
       )}
-      
+
       <div className="mt-4 pt-3 border-t border-slate-200">
         <button
           onClick={(e) => {
