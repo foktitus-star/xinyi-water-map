@@ -1,5 +1,10 @@
 # 信水義河互動地圖 更新日誌
 
+## [v1.8.8] - 2026-06-14 - 📡 - UPDATE - iOS Safari HTTPS 偵測：GPS 與語音功能在非安全環境給予明確提示
+1. **定位錯誤改為 Inline Toast**：GPS 定位按鈕錯誤訊息由 `alert()` 改為地圖右上角的卡片式提示，可手動關閉，不阻斷操作流程。
+2. **isSecureContext 偵測**：點擊定位按鈕時優先檢查 `window.isSecureContext`，若為 HTTP 連線立即顯示「需要 HTTPS」提示，並說明 Safari 設定路徑（iOS 靜默封鎖不詢問的根本原因）。
+3. **語音按鈕在 HTTP 下自動禁用**：`NodeFeedbackForm` 的語音辨識偵測加入 `isSecureContext` 判斷，HTTP 環境下語音按鈕顯示灰色禁用狀態並附帶提示，取代原本功能靜默失效。
+
 ## [v1.8.7] - 2026-06-14 - 📱 - UI - 手機版面板限高、站點 popup 縮高與新增關閉按鈕
 1. **圖層面板手機限高**：展開時限制為 `58dvh`（桌機維持全高），面板下方保留地圖可見空間，不再全遮版面。
 2. **站點 Popup 縮高**：`.leaflet-popup-content` 的 `max-height` 由 `70dvh` 縮至 `52dvh`，手機瀏覽站點時地圖不再完全被遮蓋。

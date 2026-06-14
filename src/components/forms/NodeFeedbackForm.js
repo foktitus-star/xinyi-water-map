@@ -45,11 +45,11 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
   const [summarizeError, setSummarizeError] = useState('');
   const recognitionRef = useRef(null);
 
-  // 偵測瀏覽器語音支援度
+  // 偵測瀏覽器語音支援度（iOS Safari 在 HTTP 下不支援）
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (SpeechRecognition) {
+      if (SpeechRecognition && window.isSecureContext) {
         setIsVoiceSupported(true);
       }
     }
@@ -611,14 +611,14 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
             </div>
             
             <div className="flex gap-2">
-              {isVoiceSupported && (
+              {isVoiceSupported ? (
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); handleToggleListen(); }}
                   className={`
                     flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shadow-sm transition-all cursor-pointer
-                    ${isListening 
-                      ? 'bg-red-500 text-white animate-pulse' 
+                    ${isListening
+                      ? 'bg-red-500 text-white animate-pulse'
                       : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'}
                   `}
                   title="用語音說故事"
@@ -626,6 +626,14 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
                   <span className="text-[10px]">🎙️</span>
                   <span>{isListening ? '聆聽中...' : '語音輸入'}</span>
                 </button>
+              ) : (
+                <span
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] text-slate-400 border border-slate-200 cursor-not-allowed"
+                  title="語音輸入需要 HTTPS 連線（正式網址）才能使用"
+                >
+                  <span>🎙️</span>
+                  <span>語音輸入（需 HTTPS）</span>
+                </span>
               )}
 
               {description.trim() && (

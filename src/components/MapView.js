@@ -195,6 +195,7 @@ export default function MapView({ onStartTour }) {
   const [userPos, setUserPos] = useState(null);
   const [accuracy, setAccuracy] = useState(null);
   const [locating, setLocating] = useState(false);
+  const [locateError, setLocateError] = useState(null);
 
   // Add Free Marker state
   const [isAddMarkerMode, setIsAddMarkerMode] = useState(false);
@@ -243,8 +244,16 @@ export default function MapView({ onStartTour }) {
 
   // Geolocation handler
   const handleLocate = () => {
+    setLocateError(null);
+
+    // iOS Safari silently blocks geolocation on HTTP — detect early
+    if (typeof window !== 'undefined' && !window.isSecureContext) {
+      setLocateError('https');
+      return;
+    }
+
     if (!navigator.geolocation) {
-      alert('您的瀏覽器不支援定位功能');
+      setLocateError('unsupported');
       return;
     }
 
@@ -259,13 +268,20 @@ export default function MapView({ onStartTour }) {
       (err) => {
         setLocating(false);
         if (err.code === 1) {
-          alert('請允許瀏覽器存取您的位置');
+          setLocateError('denied');
         } else {
-          alert('無法取得您的位置，請稍後再試');
+          setLocateError('failed');
         }
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
+  };
+
+  const locateErrorMessages = {
+    https:       '📡 定位需要 HTTPS 連線。請使用正式網址（https://）開啟本網站。',
+    denied:      '🔒 位置存取被拒絕。請在 Safari 設定 → 網站 → 位置 中允許本網站存取。',
+    unsupported: '⚠️ 您的瀏覽器不支援定位功能。',
+    failed:      '⚠️ 無法取得位置，請稍後再試。',
   };
 
   return (
@@ -751,6 +767,17 @@ export default function MapView({ onStartTour }) {
       >
         {locating ? '⏳' : '📍'}
       </button>
+
+      {/* ── Locate error toast ── */}
+      {locateError && (
+        <div className="absolute top-[132px] right-3 z-[1000] max-w-[240px] bg-white/97 backdrop-blur-md border border-amber-200 rounded-2xl shadow-lg px-4 py-3 text-xs text-slate-700 leading-relaxed">
+          <button
+            onClick={() => setLocateError(null)}
+            className="float-right ml-2 text-slate-400 hover:text-slate-600 text-sm leading-none"
+          >✕</button>
+          {locateErrorMessages[locateError]}
+        </div>
+      )}
 
       {/* ── Usage Guide Button overlay (bottom-left) ── */}
       <div
