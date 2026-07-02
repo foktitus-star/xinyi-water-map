@@ -1,11 +1,28 @@
 import { useState, useRef, useEffect } from 'react';
 import exifr from 'exifr';
 
-const TAGS = ['歷史', '水源', '生態', '氣味', '地景', '路況實境', '熱成像', '其他'];
+const MEMORY_TAGS = ['歷史', '水源', '生態', '氣味', '地景', '路況實境', '熱成像', '其他'];
+const REPORT_TAGS = ['積水', '異味', '疑似污染排放', '缺遮蔭', '垃圾堆積', '其他'];
+
+const FEEDBACK_TYPES = [
+  { id: 'memory', label: '📖 地方記憶', hint: '分享這裡的故事與觀察' },
+  { id: 'report', label: '⚠️ 環境通報', hint: '回報積水、異味等環境問題' },
+];
 
 export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onClose }) {
   const [description, setDescription] = useState('');
   const [selectedTags, setSelectedTags] = useState([]);
+  const [feedbackType, setFeedbackType] = useState('memory');
+
+  // Leaflet popup rule: switching type swaps the tag chips (DOM unmount) —
+  // delay the state change so the click event finishes bubbling first
+  const handleSwitchType = (typeId) => {
+    if (typeId === feedbackType) return;
+    setTimeout(() => {
+      setFeedbackType(typeId);
+      setSelectedTags([]);
+    }, 50);
+  };
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -466,6 +483,7 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
       lat,
       lng,
       station_id: stationId || '',
+      feedback_type: feedbackType,
       description: description.trim(),
       tags: selectedTags,
       photo_base64: photoBase64,
@@ -577,18 +595,47 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
       </h3>
 
       <div className="space-y-4 mb-4">
+        {/* Feedback type selector */}
+        <div>
+          <label className="block text-sm font-bold text-slate-700 mb-1">回饋性質</label>
+          <div className="grid grid-cols-2 gap-2">
+            {FEEDBACK_TYPES.map(type => (
+              <button
+                key={type.id}
+                type="button"
+                onClick={(e) => { e.stopPropagation(); handleSwitchType(type.id); }}
+                className={`
+                  flex flex-col items-center py-2 px-1 rounded-xl border text-xs font-bold transition-all cursor-pointer
+                  ${feedbackType === type.id
+                    ? (type.id === 'report'
+                        ? 'bg-orange-50 border-orange-400 text-orange-700 ring-1 ring-orange-300'
+                        : 'bg-blue-50 border-blue-400 text-blue-700 ring-1 ring-blue-300')
+                    : 'bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-100'}
+                `}
+              >
+                <span>{type.label}</span>
+                <span className="text-[9px] font-normal mt-0.5 leading-tight">{type.hint}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Tags */}
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-1">地景標籤 (可複選)</label>
+          <label className="block text-sm font-bold text-slate-700 mb-1">
+            {feedbackType === 'report' ? '通報類型 (可複選)' : '地景標籤 (可複選)'}
+          </label>
           <div className="flex flex-wrap gap-2">
-            {TAGS.map(tag => (
+            {(feedbackType === 'report' ? REPORT_TAGS : MEMORY_TAGS).map(tag => (
               <button
                 key={tag}
                 onClick={() => handleToggleTag(tag)}
                 className={`
                   px-3 py-1 rounded-full text-xs font-medium border transition-colors
-                  ${selectedTags.includes(tag) 
-                    ? 'bg-blue-600 text-white border-blue-600' 
+                  ${selectedTags.includes(tag)
+                    ? (feedbackType === 'report'
+                        ? 'bg-orange-600 text-white border-orange-600'
+                        : 'bg-blue-600 text-white border-blue-600')
                     : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}
                 `}
               >
@@ -602,7 +649,9 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
         <div>
           <div className="flex justify-between items-center mb-1.5" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-1.5">
-              <label className="block text-sm font-bold text-slate-700">您的記憶與故事</label>
+              <label className="block text-sm font-bold text-slate-700">
+                {feedbackType === 'report' ? '現場觀察描述' : '您的記憶與故事'}
+              </label>
               {aiSummary && (
                 <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold flex items-center gap-0.5 animate-bounce">
                   ✨ AI 已潤飾
@@ -655,7 +704,9 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder={isVoiceSupported ? "這裡有什麼特別的回憶嗎？（可點擊上方「語音輸入」用語音說故事喔！）" : "這裡有什麼特別的回憶嗎？"}
+              placeholder={feedbackType === 'report'
+                ? "請描述您觀察到的環境問題（位置、範圍、發生時間等）"
+                : (isVoiceSupported ? "這裡有什麼特別的回憶嗎？（可點擊上方「語音輸入」用語音說故事喔！）" : "這裡有什麼特別的回憶嗎？")}
               className="w-full p-2 border border-slate-200 rounded-lg text-sm min-h-[85px] focus:ring-2 focus:ring-blue-500 outline-none resize-none"
             />
 

@@ -98,8 +98,9 @@ function AddMarkerInteraction({ isAddMode, onAddMarker }) {
   return null;
 }
 
-// Custom DivIcon for approved community markers (Warm orange/cream theme)
-const communityIcon = typeof window !== 'undefined' ? L.divIcon({
+// Custom DivIcons for approved community markers
+// 🧡 memory (warm cream) / ⚠️ environmental report (alert red)
+const makeCommunityIcon = (emoji, borderColor, bgColor) => L.divIcon({
   className: 'community-div-icon',
   html: `<div style="
     display: flex;
@@ -108,16 +109,21 @@ const communityIcon = typeof window !== 'undefined' ? L.divIcon({
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background-color: #fffbeb;
-    border: 2px solid #ea580c;
+    background-color: ${bgColor};
+    border: 2px solid ${borderColor};
     box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
     font-size: 14px;
     line-height: 1;
-  ">🧡</div>`,
+  ">${emoji}</div>`,
   iconSize: [28, 28],
   iconAnchor: [14, 28],
   popupAnchor: [0, -28],
-}) : null;
+});
+
+const communityIcon = typeof window !== 'undefined'
+  ? makeCommunityIcon('🧡', '#ea580c', '#fffbeb') : null;
+const reportIcon = typeof window !== 'undefined'
+  ? makeCommunityIcon('⚠️', '#dc2626', '#fef2f2') : null;
 
 // ── Main map component ─────────────────────────────────────
 export default function MapView({ onStartTour }) {
@@ -360,19 +366,25 @@ export default function MapView({ onStartTour }) {
         )}
         {/* ── Approved Community Markers ── */}
         {showCommunityMarkers && communityMarkers.map((marker) => (
-          <Marker 
-            key={marker.id} 
+          <Marker
+            key={marker.id}
             position={[parseFloat(marker.lat), parseFloat(marker.lng)]}
-            icon={communityIcon}
+            icon={marker.feedback_type === 'report' ? reportIcon : communityIcon}
           >
             <Popup className="feedback-popup" minWidth={280} maxWidth={340}>
               <div className="p-2 font-sans text-slate-800 animate-fade-in">
                 {/* Custom Popup Header */}
                 <div className="border-b border-slate-200 pb-2 mb-2">
                   <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                    <span className="text-[10px] bg-amber-500/10 text-amber-700 border border-amber-500/20 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
-                      👥 社群走讀地標
-                    </span>
+                    {marker.feedback_type === 'report' ? (
+                      <span className="text-[10px] bg-red-500/10 text-red-700 border border-red-500/20 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
+                        ⚠️ 環境通報
+                      </span>
+                    ) : (
+                      <span className="text-[10px] bg-amber-500/10 text-amber-700 border border-amber-500/20 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
+                        👥 社群走讀地標
+                      </span>
+                    )}
                     {marker.tags && marker.tags.split(',').map(tag => (
                       <span key={tag} className="text-[9px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-semibold">
                         #{tag.trim()}

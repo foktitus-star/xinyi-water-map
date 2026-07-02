@@ -178,6 +178,10 @@ function handleCreateRecord(sheet, payload) {
       case "station_id":
         rowValues.push(payload.station_id || "");
         break;
+      case "feedback_type":
+        // 'memory' (地方記憶) 或 'report' (環境通報)，舊版前端未傳送時預設為 memory
+        rowValues.push(payload.feedback_type || "memory");
+        break;
       case "description":
         rowValues.push(payload.description || "");
         break;
@@ -265,8 +269,9 @@ function initSheet(ss) {
     "timestamp", 
     "lat", 
     "lng", 
-    "station_id", 
-    "description", 
+    "station_id",
+    "feedback_type",
+    "description",
     "tags", 
     "photo_url", 
     "ai_summary", 

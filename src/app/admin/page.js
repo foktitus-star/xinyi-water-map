@@ -11,6 +11,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'approved', 'rejected'
+  const [typeFilter, setTypeFilter] = useState('all'); // 'all', 'memory', 'report'
   const [actioningId, setActioningId] = useState(null);
 
   // 嘗試從 SessionStorage 自動登入
@@ -126,11 +127,27 @@ export default function AdminPage() {
     rejected: records.filter(r => r.status === 'rejected').length,
   };
 
-  // 當前標籤過濾後的紀錄
+  // 舊資料沒有 feedback_type 欄位，缺失或空值一律視為 'memory'
+  const getFeedbackType = (r) => r.feedback_type === 'report' ? 'report' : 'memory';
+
+  // 當前標籤 + 類型過濾後的紀錄
   const filteredRecords = records.filter(r => {
-    if (activeTab === 'pending') return r.status === 'pending' || !r.status;
-    return r.status === activeTab;
-  }).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // 最新時間排前面
+    if (activeTab === 'pending') {
+      if (r.status !== 'pending' && r.status) return false;
+    } else if (r.status !== activeTab) {
+      return false;
+    }
+    if (typeFilter !== 'all' && getFeedbackType(r) !== typeFilter) return false;
+    return true;
+  }).sort((a, b) => {
+    // 待審核分頁：環境通報優先排最前，同類型內維持原本時間排序
+    if (activeTab === 'pending') {
+      const aIsReport = getFeedbackType(a) === 'report';
+      const bIsReport = getFeedbackType(b) === 'report';
+      if (aIsReport !== bIsReport) return aIsReport ? -1 : 1;
+    }
+    return new Date(b.timestamp) - new Date(a.timestamp); // 最新時間排前面
+  });
 
   if (!isAuthenticated) {
     return (
@@ -269,7 +286,7 @@ export default function AdminPage() {
 
         {/* Data Cards Grid */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <h2 className="text-lg font-bold flex items-center gap-2">
               <span>📂</span>
               <span>{activeTab === 'pending' ? '待審核清單' : activeTab === 'approved' ? '核准地標清單' : '封存拒絕紀錄'}</span>
@@ -278,11 +295,46 @@ export default function AdminPage() {
               </span>
             </h2>
 
-            <button 
+            <button
               onClick={() => verifyAndLoad(passcode)}
               className="text-xs text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1 cursor-pointer"
             >
               🔄 重整列表
+            </button>
+          </div>
+
+          {/* Type Filter */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[10px] font-bold text-slate-500 tracking-wider mr-1">類型篩選：</span>
+            <button
+              onClick={() => setTypeFilter('all')}
+              className={`text-xs font-bold px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
+                typeFilter === 'all'
+                  ? 'bg-slate-700 border-slate-500 text-white'
+                  : 'bg-slate-900/40 border-white/10 text-slate-400 hover:bg-slate-800/60'
+              }`}
+            >
+              全部
+            </button>
+            <button
+              onClick={() => setTypeFilter('memory')}
+              className={`text-xs font-bold px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
+                typeFilter === 'memory'
+                  ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+                  : 'bg-slate-900/40 border-white/10 text-slate-400 hover:bg-slate-800/60'
+              }`}
+            >
+              📖 地方記憶
+            </button>
+            <button
+              onClick={() => setTypeFilter('report')}
+              className={`text-xs font-bold px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
+                typeFilter === 'report'
+                  ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                  : 'bg-slate-900/40 border-white/10 text-slate-400 hover:bg-slate-800/60'
+              }`}
+            >
+              ⚠️ 環境通報
             </button>
           </div>
 
@@ -296,7 +348,8 @@ export default function AdminPage() {
               {filteredRecords.map((record) => {
                 const formattedDate = new Date(record.timestamp).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
                 const tagsList = record.tags ? record.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
-                
+                const isReport = getFeedbackType(record) === 'report';
+
                 return (
                   <div 
                     key={record.id}
@@ -311,10 +364,20 @@ export default function AdminPage() {
 
                       {/* Title & Tags */}
                       <div className="flex flex-wrap items-center gap-2 mb-3">
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                            isReport
+                              ? 'bg-red-500/10 text-red-400 border-red-500/30'
+                              : 'bg-slate-500/10 text-slate-400 border-slate-500/30'
+                          }`}
+                        >
+                          {isReport ? '⚠️ 環境通報' : '📖 地方記憶'}
+                        </span>
+
                         <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
                           📍 {record.station_id || '自由地景標記'}
                         </span>
-                        
+
                         {tagsList.map(tag => (
                           <span key={tag} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
                             #{tag}
