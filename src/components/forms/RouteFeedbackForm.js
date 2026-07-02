@@ -9,7 +9,7 @@ const SCORES = [
   { value: 5, label: '極佳', emoji: '😊' }
 ];
 
-const FACTORS = [
+export const FACTORS = [
   { id: 'shade', label: '遮蔭程度' },
   { id: 'surface', label: '路面狀況' },
   { id: 'safety', label: '安全感' },

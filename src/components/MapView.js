@@ -14,7 +14,7 @@ import 'leaflet/dist/leaflet.css';
 import { routes } from '@/data/routeData';
 import ZoningLayer from './layers/ZoningLayer';
 import ComfortLayer from './layers/ComfortLayer';
-import RouteLayer from './layers/RouteLayer';
+import RouteLayer, { COMFORT_SCALE } from './layers/RouteLayer';
 import UserLocationLayer from './layers/UserLocationLayer';
 import HistoricalLayer, { HistoricalControl, HISTORICAL_MAPS } from './layers/HistoricalLayer';
 import TemperatureLayer, { TemperatureControl, useTemperatureLayer } from './layers/TemperatureLayer';
@@ -216,6 +216,28 @@ export default function MapView({ onStartTour }) {
   const [communityMarkers, setCommunityMarkers] = useState([]);
   const [showCommunityMarkers, setShowCommunityMarkers] = useState(true);
 
+  // 路線舒適度檢視模式
+  const [showComfort, setShowComfort] = useState(false);
+  const [comfortStats, setComfortStats] = useState(null); // null=未載入, {}=載入失敗或無資料
+  const [comfortLoading, setComfortLoading] = useState(false);
+
+  const toggleComfortMode = () => {
+    const next = !showComfort;
+    setShowComfort(next);
+    // 首次開啟時才載入統計
+    if (next && comfortStats === null && !comfortLoading) {
+      setComfortLoading(true);
+      fetch('/api/route-comfort-stats')
+        .then(res => res.ok ? res.json() : Promise.reject(new Error('stats unavailable')))
+        .then(data => setComfortStats(data.stats || {}))
+        .catch(err => {
+          console.error('Failed to load comfort stats:', err);
+          setComfortStats({});
+        })
+        .finally(() => setComfortLoading(false));
+    }
+  };
+
   // 載入審核通過的社群地景
   useEffect(() => {
     async function loadCommunityMarkers() {
@@ -339,6 +361,7 @@ export default function MapView({ onStartTour }) {
               key={route.id}
               route={route}
               polylines={polylines[ri]}
+              comfortData={showComfort ? (comfortStats?.[String(route.id)] ?? {}) : null}
             />
           ) : null
         )}
@@ -560,6 +583,46 @@ export default function MapView({ onStartTour }) {
                 >
                   全清
                 </button>
+              </div>
+
+              {/* 步行舒適度檢視模式 */}
+              <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50/60 px-2 py-2">
+                <label className="flex items-center justify-between gap-2 cursor-pointer">
+                  <span className="flex items-center gap-2 text-sm text-slate-700">
+                    <span>🌡️</span> 步行舒適度檢視
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={showComfort}
+                    onChange={toggleComfortMode}
+                    className="w-5 h-5 rounded cursor-pointer"
+                    style={{ accentColor: '#0284c7' }}
+                  />
+                </label>
+                {showComfort && (
+                  <div className="mt-2 pt-2 border-t border-slate-200 text-[10px] text-slate-500 leading-relaxed">
+                    {comfortLoading ? (
+                      <p className="animate-pulse">評分統計載入中...</p>
+                    ) : (
+                      <>
+                        <p className="mb-1">路線依民眾評分平均上色（每 0.5 分一階）：</p>
+                        <div className="flex h-2.5 rounded-full overflow-hidden">
+                          {COMFORT_SCALE.slice().reverse().map(band => (
+                            <span key={band.color} className="flex-1" style={{ background: band.color }} />
+                          ))}
+                        </div>
+                        <div className="flex justify-between mt-0.5 text-slate-400">
+                          <span>1.0 差</span>
+                          <span>5.0 極佳</span>
+                        </div>
+                        <div className="flex items-center gap-1 mt-1.5">
+                          <span className="w-3 h-1.5 rounded-full inline-block bg-slate-300" /> 無評分
+                        </div>
+                        <p className="mt-1 text-slate-400">點擊路線可查看各項平均分與評分。</p>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

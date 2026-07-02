@@ -1,58 +1,60 @@
 /**
- * 信水義河互動地圖 — Google Apps Script (GAS) 核心後台腳本
+ * 信水義河互動地圖 — Google Apps Script (GAS) 統一後台腳本
  *
  * 說明：
- * 請將此腳本完整複製，並貼入您 Google 試算表中的「擴充功能 > Apps Script」中。
+ * 此腳本同時處理兩種回饋來源，寫入同一份 Google 試算表的不同分頁（工作表）：
+ *   1. 地景標記回饋（地方記憶 / 環境通報）— 分頁「地景標記回饋」
+ *   2. 路線舒適度評分 — 分頁「路線舒適度評分」
+ * 前端請求會依 payload 內容自動路由到正確分頁，只需要「一份試算表 + 一個部署」。
+ *
  * 部署方式：
- * 1. 點擊右上角「網頁應用程式 (Web App) > 新增部署」。
- * 2. 部署類型選擇「網網應用程式」。
- * 3. 專案說明填入：v1.6.0-community-flow。
- * 4. 誰可以存取：設定為「任何人 (Anyone)」。
+ * 1. 開啟該 Google 試算表 →「擴充功能」→「Apps Script」。
+ * 2. 將此腳本完整複製並貼入（取代原有內容）。
+ * 3. 右上角「部署」→「新增部署」，類型選擇「網頁應用程式」。
+ * 4. 「誰可以存取」設定為「任何人」。
  * 5. 點擊部署，並授權雲端硬碟與試算表讀寫權限。
- * 6. 複製產生的 Web App URL，填入 Next.js 專案的 .env.local 中的 NODE_SHEETS_API_URL。
+ * 6. 複製產生的 Web App URL，並在 Next.js 專案的 .env.local 中，
+ *    將 NODE_SHEETS_API_URL 與 SHEETS_API_URL 都填入這「同一個」網址
+ *   （兩個環境變數名稱維持不變，只是現在指向同一個部署，因為資料只有一份試算表）。
  */
 
-// 定義主要試算表工作表名稱
-var SHEET_NAME = "地景標記回饋";
+// 兩個分頁（工作表）的名稱對照
+var SHEET_NAMES = {
+  node: "地景標記回饋",
+  route: "路線舒適度評分"
+};
 var DRIVE_FOLDER_NAME = "信水義河地景相片";
 
 /**
- * 處理 GET 請求 — 返回所有資料為 JSON 格式
+ * 處理 GET 請求 — 依 ?sheet= 參數決定回傳哪個分頁的資料
+ * ?sheet=route → 路線舒適度評分；省略或其他值 → 地景標記回饋（預設，向下相容既有前端呼叫）
  */
 function doGet(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName(SHEET_NAME);
-    
-    // 如果工作表不存在，建立並初始化首列標題
-    if (!sheet) {
-      sheet = initSheet(ss);
-    }
-    
+    var type = (e && e.parameter && e.parameter.sheet === "route") ? "route" : "node";
+    var sheet = getOrInitSheet(ss, type);
+
     var data = sheet.getDataRange().getValues();
     if (data.length <= 1) {
       return jsonResponse([]);
     }
-    
+
     var headers = data[0];
     var jsonArray = [];
-    
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
       var obj = {};
       for (var j = 0; j < headers.length; j++) {
-        var headerName = headers[j];
         var val = row[j];
-        
-        // 格式化日期與特殊型態
         if (val instanceof Date) {
           val = val.toISOString();
         }
-        obj[headerName] = val;
+        obj[headers[j]] = val;
       }
       jsonArray.push(obj);
     }
-    
+
     return jsonResponse(jsonArray);
   } catch (error) {
     return jsonResponse({ error: error.toString() }, 500);
@@ -60,49 +62,63 @@ function doGet(e) {
 }
 
 /**
- * 處理 POST 請求 — 建立新紀錄、上傳相片或變更審核狀態
+ * 處理 POST 請求 — 依 payload 內容路由到正確分頁：
+ *   action === "update_status"      → 地景標記回饋分頁（審核狀態變更）
+ *   formType === "route_comfort"    → 路線舒適度評分分頁（新增評分）
+ *   其他（含 formType: node_feedback 或未指定）→ 地景標記回饋分頁（新增標記）
  */
 function doPost(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName(SHEET_NAME);
-    if (!sheet) {
-      sheet = initSheet(ss);
-    }
-    
     var payload = JSON.parse(e.postData.contents);
-    var action = payload.action || "create"; // create, update_status
-    
-    if (action === "update_status") {
-      return handleUpdateStatus(sheet, payload);
-    } else {
-      return handleCreateRecord(sheet, payload);
+
+    if (payload.action === "update_status") {
+      var nodeSheetForStatus = getOrInitSheet(ss, "node");
+      return handleUpdateStatus(nodeSheetForStatus, payload);
     }
+
+    if (payload.formType === "route_comfort") {
+      var routeSheet = getOrInitSheet(ss, "route");
+      return handleCreateRouteRecord(routeSheet, payload);
+    }
+
+    var nodeSheet = getOrInitSheet(ss, "node");
+    return handleCreateNodeRecord(nodeSheet, payload);
   } catch (error) {
     return jsonResponse({ success: false, error: error.toString() }, 500);
   }
 }
 
 /**
- * 處理狀態審批修改（審核通過/拒絕）
+ * 取得或建立指定分頁（'node' | 'route'）
+ */
+function getOrInitSheet(ss, type) {
+  var name = SHEET_NAMES[type];
+  var sheet = ss.getSheetByName(name);
+  if (sheet) return sheet;
+  return type === "route" ? initRouteSheet(ss) : initNodeSheet(ss);
+}
+
+/**
+ * 處理狀態審批修改（審核通過/拒絕）— 僅作用於地景標記回饋分頁
  */
 function handleUpdateStatus(sheet, payload) {
   var rowId = payload.id;
   var newStatus = payload.status; // approved, rejected, pending
-  
+
   if (!rowId || !newStatus) {
     return jsonResponse({ success: false, error: "Missing id or status parameters" }, 400);
   }
-  
+
   var data = sheet.getDataRange().getValues();
   var headers = data[0];
   var idColIdx = headers.indexOf("id");
   var statusColIdx = headers.indexOf("status");
-  
+
   if (idColIdx === -1 || statusColIdx === -1) {
     return jsonResponse({ success: false, error: "Spreadsheet schema mismatch (missing id or status column)" }, 500);
   }
-  
+
   var foundRowIdx = -1;
   for (var i = 1; i < data.length; i++) {
     if (String(data[i][idColIdx]).trim() === String(rowId).trim()) {
@@ -110,46 +126,41 @@ function handleUpdateStatus(sheet, payload) {
       break;
     }
   }
-  
+
   if (foundRowIdx === -1) {
     return jsonResponse({ success: false, error: "Record not found with ID: " + rowId }, 404);
   }
-  
-  // 更新狀態單格
+
   sheet.getRange(foundRowIdx, statusColIdx + 1).setValue(newStatus);
-  
+
   return jsonResponse({ success: true, id: rowId, status: newStatus });
 }
 
 /**
- * 處理新增回饋地景紀錄
+ * 處理新增地景標記回饋紀錄（地方記憶 / 環境通報）
  */
-function handleCreateRecord(sheet, payload) {
+function handleCreateNodeRecord(sheet, payload) {
   var headers = sheet.getDataRange().getValues()[0];
-  
-  // 1. 生成唯一 ID
+
   var uniqueId = payload.id || "node_" + new Date().getTime() + "_" + Math.random().toString(36).substr(2, 5);
-  
-  // 2. 處理 Base64 照片並上傳至 Google Drive
+
   var photoUrl = "";
   if (payload.photo_base64 && payload.photo_filename) {
     photoUrl = uploadPhotoToDrive(payload.photo_base64, payload.photo_filename);
   }
-  
-  // 3. 解析標籤陣列為字串
+
   var tagsString = "";
   if (Array.isArray(payload.tags)) {
     tagsString = payload.tags.join(", ");
   } else if (payload.tags) {
     tagsString = String(payload.tags);
   }
-  
-  // 4. 解析巢狀 EXIF 資料
+
   var exifLat = "";
   var exifLng = "";
   var exifTime = "";
   var exifDevice = "";
-  
+
   if (payload.photo_exif) {
     var exif = payload.photo_exif;
     if (exif.latitude !== undefined && exif.latitude !== null) exifLat = exif.latitude;
@@ -157,8 +168,7 @@ function handleCreateRecord(sheet, payload) {
     if (exif.dateTime) exifTime = exif.dateTime;
     if (exif.device) exifDevice = exif.device;
   }
-  
-  // 5. 根據試算表標頭結構動態生成寫入值
+
   var rowValues = [];
   for (var i = 0; i < headers.length; i++) {
     var h = headers[i];
@@ -216,10 +226,65 @@ function handleCreateRecord(sheet, payload) {
         rowValues.push("");
     }
   }
-  
+
   sheet.appendRow(rowValues);
-  
+
   return jsonResponse({ success: true, id: uniqueId, status: "pending", photo_url: photoUrl });
+}
+
+/**
+ * 處理新增路線舒適度評分紀錄
+ */
+function handleCreateRouteRecord(sheet, payload) {
+  var headers = sheet.getDataRange().getValues()[0];
+
+  var scores = payload.scores || {};
+  var scoreShade = "";
+  var scoreSurface = "";
+  var scoreSafety = "";
+  var scoreComfort = "";
+
+  if (scores.shade !== undefined && scores.shade !== null) scoreShade = scores.shade;
+  if (scores.surface !== undefined && scores.surface !== null) scoreSurface = scores.surface;
+  if (scores.safety !== undefined && scores.safety !== null) scoreSafety = scores.safety;
+  if (scores.comfort !== undefined && scores.comfort !== null) scoreComfort = scores.comfort;
+
+  var rowValues = [];
+  for (var i = 0; i < headers.length; i++) {
+    var h = headers[i];
+    switch (h) {
+      case "timestamp":
+        rowValues.push(payload.timestamp || new Date().toISOString());
+        break;
+      case "route_id":
+        rowValues.push(payload.route_id !== undefined && payload.route_id !== null ? payload.route_id : "");
+        break;
+      case "route_name":
+        rowValues.push(payload.route_name || "");
+        break;
+      case "segment_id":
+        rowValues.push(payload.segment_id || "");
+        break;
+      case "score_shade":
+        rowValues.push(scoreShade);
+        break;
+      case "score_surface":
+        rowValues.push(scoreSurface);
+        break;
+      case "score_safety":
+        rowValues.push(scoreSafety);
+        break;
+      case "score_comfort":
+        rowValues.push(scoreComfort);
+        break;
+      default:
+        rowValues.push("");
+    }
+  }
+
+  sheet.appendRow(rowValues);
+
+  return jsonResponse({ success: true });
 }
 
 /**
@@ -227,7 +292,6 @@ function handleCreateRecord(sheet, payload) {
  */
 function uploadPhotoToDrive(base64Data, filename) {
   try {
-    // 尋找或建立專屬相簿資料夾
     var folders = DriveApp.getFoldersByName(DRIVE_FOLDER_NAME);
     var folder;
     if (folders.hasNext()) {
@@ -235,23 +299,19 @@ function uploadPhotoToDrive(base64Data, filename) {
     } else {
       folder = DriveApp.createFolder(DRIVE_FOLDER_NAME);
     }
-    
-    // 清除 Base64 前綴，例如 data:image/jpeg;base64,
+
     var base64Part = base64Data.split(",")[1] || base64Data;
     var decoded = Utilities.base64Decode(base64Part);
-    
-    // 預設設為 jpeg
+
     var contentType = "image/jpeg";
     if (filename.toLowerCase().endsWith(".png")) contentType = "image/png";
     if (filename.toLowerCase().endsWith(".heic")) contentType = "image/heic";
-    
+
     var blob = Utilities.newBlob(decoded, contentType, filename);
     var file = folder.createFile(blob);
-    
-    // 將檔案設定為「網路上知道連結的任何人皆可檢視」，以供前台展示圖片
+
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    
-    // 生成直接下載或檢視的網址
+
     return "https://lh3.googleusercontent.com/d/" + file.getId();
   } catch (e) {
     Logger.log("Drive upload failed: " + e.toString());
@@ -260,36 +320,60 @@ function uploadPhotoToDrive(base64Data, filename) {
 }
 
 /**
- * 試算表初始化 — 建立必要的欄位標頭
+ * 分頁初始化 — 地景標記回饋
  */
-function initSheet(ss) {
-  var sheet = ss.insertSheet(SHEET_NAME);
+function initNodeSheet(ss) {
+  var sheet = ss.insertSheet(SHEET_NAMES.node);
   var columns = [
-    "id", 
-    "timestamp", 
-    "lat", 
-    "lng", 
+    "id",
+    "timestamp",
+    "lat",
+    "lng",
     "station_id",
     "feedback_type",
     "description",
-    "tags", 
-    "photo_url", 
-    "ai_summary", 
-    "is_voice", 
-    "photo_exif_latitude", 
-    "photo_exif_longitude", 
-    "photo_exif_dateTime", 
-    "photo_exif_device", 
+    "tags",
+    "photo_url",
+    "ai_summary",
+    "is_voice",
+    "photo_exif_latitude",
+    "photo_exif_longitude",
+    "photo_exif_dateTime",
+    "photo_exif_device",
     "status"
   ];
-  
-  // 寫入首列標頭並美化
+
   var range = sheet.getRange(1, 1, 1, columns.length);
   range.setValues([columns]);
   range.setFontWeight("bold");
   range.setBackground("#f1f5f9");
   sheet.setFrozenRows(1);
-  
+
+  return sheet;
+}
+
+/**
+ * 分頁初始化 — 路線舒適度評分
+ */
+function initRouteSheet(ss) {
+  var sheet = ss.insertSheet(SHEET_NAMES.route);
+  var columns = [
+    "timestamp",
+    "route_id",
+    "route_name",
+    "segment_id",
+    "score_shade",
+    "score_surface",
+    "score_safety",
+    "score_comfort"
+  ];
+
+  var range = sheet.getRange(1, 1, 1, columns.length);
+  range.setValues([columns]);
+  range.setFontWeight("bold");
+  range.setBackground("#f1f5f9");
+  sheet.setFrozenRows(1);
+
   return sheet;
 }
 
