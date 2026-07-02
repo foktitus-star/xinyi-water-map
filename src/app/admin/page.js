@@ -13,6 +13,9 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'approved', 'rejected'
   const [typeFilter, setTypeFilter] = useState('all'); // 'all', 'memory', 'report'
   const [actioningId, setActioningId] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryResult, setSummaryResult] = useState(null); // { text: string } | null
+  const [summaryCopied, setSummaryCopied] = useState(false);
 
   // 嘗試從 SessionStorage 自動登入
   useEffect(() => {
@@ -148,6 +151,104 @@ export default function AdminPage() {
     }
     return new Date(b.timestamp) - new Date(a.timestamp); // 最新時間排前面
   });
+
+  // CSV 欄位值 escape：含逗號、雙引號或換行則以雙引號包裹，內部雙引號轉為兩個雙引號
+  const escapeCsvValue = (value) => {
+    const str = value === null || value === undefined ? '' : String(value);
+    if (/[",\n]/.test(str)) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  // 匯出當前篩選結果為 CSV 檔案（純前端）
+  const handleExportCsv = () => {
+    if (filteredRecords.length === 0) return;
+
+    const columns = ['id', 'timestamp', 'feedback_type', 'status', 'station_id', 'lat', 'lng', 'tags', 'description', 'ai_summary', 'photo_url', 'photo_url_2'];
+    const header = columns.join(',');
+    const rows = filteredRecords.map(r => {
+      const rowValues = {
+        id: r.id,
+        timestamp: r.timestamp,
+        feedback_type: getFeedbackType(r),
+        status: r.status || 'pending',
+        station_id: r.station_id,
+        lat: r.lat,
+        lng: r.lng,
+        tags: r.tags,
+        description: r.description,
+        ai_summary: r.ai_summary,
+        photo_url: r.photo_url,
+        photo_url_2: r.photo_url_2,
+      };
+      return columns.map(col => escapeCsvValue(rowValues[col])).join(',');
+    });
+
+    const csvContent = '﻿' + [header, ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const dateStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const filename = `信水義河回饋_${activeTab}_${typeFilter}_${dateStr}.csv`;
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // 送給 AI 彙整的環境通報紀錄（僅取當前篩選結果中的 report 類型）
+  const reportRecordsForSummary = filteredRecords.filter(r => getFeedbackType(r) === 'report');
+
+  // 呼叫後端 API 產生環境通報彙整摘要
+  const handleGenerateSummary = async () => {
+    if (reportRecordsForSummary.length === 0) return;
+    if (reportRecordsForSummary.length > 100) {
+      alert('目前篩選範圍內的環境通報超過 100 筆，請先縮小篩選範圍再產生彙整摘要。');
+      return;
+    }
+
+    setSummaryLoading(true);
+    try {
+      const res = await fetch('/api/admin/report-summary', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          passcode: passcode.trim(),
+          records: reportRecordsForSummary
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || '產生彙整摘要失敗');
+      }
+
+      setSummaryResult({ text: data.summary });
+    } catch (err) {
+      alert('彙整失敗：' + err.message);
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
+  const handleCopySummary = async () => {
+    if (!summaryResult) return;
+    try {
+      await navigator.clipboard.writeText(summaryResult.text);
+      setSummaryCopied(true);
+      setTimeout(() => setSummaryCopied(false), 2000);
+    } catch (err) {
+      alert('複製失敗：' + err.message);
+    }
+  };
 
   if (!isAuthenticated) {
     return (
@@ -295,12 +396,38 @@ export default function AdminPage() {
               </span>
             </h2>
 
-            <button
-              onClick={() => verifyAndLoad(passcode)}
-              className="text-xs text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1 cursor-pointer"
-            >
-              🔄 重整列表
-            </button>
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                onClick={handleExportCsv}
+                disabled={filteredRecords.length === 0}
+                className="text-xs text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-cyan-400"
+              >
+                📊 匯出 CSV
+              </button>
+
+              <button
+                onClick={handleGenerateSummary}
+                disabled={summaryLoading || reportRecordsForSummary.length === 0}
+                title={reportRecordsForSummary.length === 0 ? '目前篩選範圍內沒有環境通報' : undefined}
+                className="text-xs text-violet-400 hover:text-violet-300 font-bold flex items-center gap-1 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-violet-400"
+              >
+                {summaryLoading ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-violet-400/30 border-t-violet-400 rounded-full animate-spin" />
+                    <span>彙整中...</span>
+                  </>
+                ) : (
+                  <span>📋 產生通報彙整</span>
+                )}
+              </button>
+
+              <button
+                onClick={() => verifyAndLoad(passcode)}
+                className="text-xs text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1 cursor-pointer"
+              >
+                🔄 重整列表
+              </button>
+            </div>
           </div>
 
           {/* Type Filter */}
@@ -580,6 +707,43 @@ export default function AdminPage() {
           )}
         </div>
       </main>
+
+      {/* AI 通報彙整摘要 Modal */}
+      {summaryResult && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-violet-500 via-blue-400 to-cyan-500" />
+
+            <div className="p-6 md:p-8">
+              <h2 className="text-lg font-black bg-gradient-to-r from-violet-400 to-blue-300 bg-clip-text text-transparent tracking-wider mb-4 flex items-center gap-2">
+                <span>📋</span>
+                <span>環境通報彙整摘要</span>
+              </h2>
+
+              <div className="bg-white/5 border border-white/5 rounded-xl p-4 max-h-[50vh] overflow-y-auto mb-6">
+                <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap font-sans">
+                  {summaryResult.text}
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  onClick={handleCopySummary}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-violet-600 hover:bg-violet-500 text-white transition-all shadow-md active:scale-95 cursor-pointer"
+                >
+                  {summaryCopied ? '已複製 ✓' : '📋 複製全文'}
+                </button>
+                <button
+                  onClick={() => { setSummaryResult(null); setSummaryCopied(false); }}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all active:scale-95 cursor-pointer"
+                >
+                  關閉
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
