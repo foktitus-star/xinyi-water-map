@@ -26,6 +26,32 @@ const NodeFeedbackForm = dynamic(() => import('@/components/forms/NodeFeedbackFo
   loading: () => <p className="text-center py-6 text-slate-400">載入表單中...</p>
 });
 
+// 流光配置 — 光痕順流滑行，確定性偽隨機（不用 Math.random 以確保 SSR/CSR hydration 一致）
+const frac = (n) => n - Math.floor(n);
+const WATER_STREAKS = Array.from({ length: 18 }, (_, i) => {
+  const r1 = frac(Math.sin((i + 1) * 127.1) * 43758.5453);
+  const r2 = frac(Math.sin((i + 1) * 269.5) * 28001.8384);
+  const r3 = frac(Math.sin((i + 1) * 419.2) * 15731.7431);
+  const r4 = frac(Math.sin((i + 1) * 631.9) * 92831.6247);
+  // 固定兩位小數：避免 SSR 與 CSR 對浮點數字串的序列化精度不同造成 hydration mismatch
+  return {
+    top: `${(6 + r1 * 86).toFixed(2)}%`,
+    left: `${(r2 * 82).toFixed(2)}%`,
+    w: `${(50 + r3 * 75).toFixed(2)}px`,
+    h: `${(3 + r4 * 4).toFixed(2)}px`,
+    dur: `${(3.2 + r1 * 2.8).toFixed(2)}s`,
+    delay: `${(r2 * 4.8).toFixed(2)}s`,
+  };
+});
+
+// 大面積柔光暈（水面整體的光感底色）
+const WATER_GLOWS = [
+  { top: '10%', left: '15%', w: '260px', h: '80px', delay: '0s' },
+  { top: '36%', left: '62%', w: '300px', h: '95px', delay: '2.2s' },
+  { top: '62%', left: '20%', w: '240px', h: '75px', delay: '4.0s' },
+  { top: '82%', left: '55%', w: '280px', h: '85px', delay: '1.1s' },
+];
+
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState('map'); // 'map', 'layers', 'form', 'history', 'changelog'
@@ -752,62 +778,110 @@ export default function HomePage() {
           {/* ── Water animation layer ── */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
 
-            {/* 波光粼粼 shimmer ovals */}
-            {[
-              { top: '6%',  left: '12%', w: '200px', h: '65px',  delay: '0s' },
-              { top: '18%', left: '68%', w: '260px', h: '80px',  delay: '1.7s' },
-              { top: '34%', left: '38%', w: '170px', h: '52px',  delay: '3.4s' },
-              { top: '50%', left: '78%', w: '220px', h: '70px',  delay: '0.9s' },
-              { top: '64%', left: '22%', w: '190px', h: '60px',  delay: '2.6s' },
-              { top: '14%', left: '48%', w: '145px', h: '44px',  delay: '4.1s' },
-              { top: '78%', left: '58%', w: '210px', h: '65px',  delay: '1.3s' },
-              { top: '88%', left: '8%',  w: '160px', h: '50px',  delay: '2.0s' },
-            ].map((s, i) => (
+            {/* 水面流紋：單一方向漂移的流線形光斑——清澈水流的表面紋理 */}
+            <div className="caustic-layer-1" />
+            <div className="caustic-layer-2" />
+
+            {/* 圳道水脈：蜿蜒穿行的軌跡線，虛線緩緩前行——潛流在城市之下、不曾消失的水路 */}
+            <svg
+              className="absolute inset-0 w-full h-full"
+              viewBox="0 0 1440 900"
+              preserveAspectRatio="none"
+            >
+              <path
+                className="stream-path"
+                d="M-20,180 C180,150 320,230 520,205 C720,180 800,120 1000,150 C1180,177 1300,240 1460,215"
+                stroke="rgba(56,152,199,0.30)"
+                strokeWidth="2.5"
+                strokeDasharray="14 12"
+              />
+              <path
+                className="stream-path-slow"
+                d="M-20,480 C240,440 380,540 620,510 C860,480 940,400 1160,440 C1310,467 1400,510 1460,495"
+                stroke="rgba(56,152,199,0.22)"
+                strokeWidth="3.5"
+                strokeDasharray="20 16"
+              />
+              <path
+                className="stream-path"
+                d="M-20,730 C200,700 360,780 560,755 C760,730 880,670 1080,700 C1260,727 1380,770 1460,750"
+                stroke="rgba(125,196,228,0.28)"
+                strokeWidth="2"
+                strokeDasharray="10 10"
+              />
+            </svg>
+
+            {/* 大面積柔光暈（底層光感） */}
+            {WATER_GLOWS.map((s, i) => (
               <div
-                key={i}
+                key={`glow-${i}`}
                 className="absolute rounded-full"
                 style={{
                   top: s.top, left: s.left, width: s.w, height: s.h,
-                  background: 'radial-gradient(ellipse, rgba(255,255,255,0.82) 0%, rgba(186,230,253,0.35) 55%, transparent 80%)',
-                  filter: 'blur(7px)',
-                  animation: `shimmer-pulse 4.5s ease-in-out infinite`,
+                  background: 'radial-gradient(ellipse, rgba(255,255,255,0.55) 0%, rgba(186,230,253,0.25) 55%, transparent 80%)',
+                  filter: 'blur(12px)',
+                  animation: 'shimmer-pulse 7s ease-in-out infinite',
                   animationDelay: s.delay,
                 }}
               />
             ))}
 
-            {/* Bottom wave band */}
+            {/* 流光：光痕順著水流方向滑行漸隱——有方向的水，有力量的水 */}
+            {WATER_STREAKS.map((s, i) => (
+              <div
+                key={`streak-${i}`}
+                className="absolute rounded-full"
+                style={{
+                  top: s.top, left: s.left, width: s.w, height: s.h,
+                  background: 'linear-gradient(90deg, transparent 0%, rgba(224,242,254,0.85) 30%, rgba(255,255,255,0.95) 70%, transparent 100%)',
+                  filter: 'blur(0.5px)',
+                  animation: `streak-drift ${s.dur} linear infinite`,
+                  animationDelay: s.delay,
+                }}
+              />
+            ))}
+
+            {/* Bottom wave band — 平緩流暢的微幅起伏（順著地勢的水），底層帶一筆稻浪的淡黃綠 */}
             <div className="absolute bottom-0 left-0 right-0 overflow-hidden" style={{ height: '200px' }}>
-              <div className="wave-flow-1" style={{ width: '200%', display: 'flex' }}>
-                {[0, 1].map(k => (
-                  <svg key={k} viewBox="0 0 1440 200" style={{ width: '50%', flexShrink: 0 }} preserveAspectRatio="none">
-                    <path d="M0,90 C240,35 480,145 720,90 C960,35 1200,145 1440,90 L1440,200 L0,200 Z" fill="rgba(186,230,253,0.30)" />
-                    <path d="M0,125 C360,70 720,170 1080,125 C1260,102 1380,138 1440,125 L1440,200 L0,200 Z" fill="rgba(147,210,244,0.22)" />
-                    <path d="M0,155 C480,110 960,190 1440,155 L1440,200 L0,200 Z" fill="rgba(219,234,254,0.35)" />
-                  </svg>
-                ))}
+              <div className="wave-bob-1">
+                <div className="wave-flow-1" style={{ width: '200%', display: 'flex' }}>
+                  {[0, 1].map(k => (
+                    <svg key={k} viewBox="0 0 1440 200" style={{ width: '50%', flexShrink: 0 }} preserveAspectRatio="none">
+                      <path d="M0,95 C200,78 380,110 600,98 C820,86 940,68 1140,82 C1280,92 1380,100 1440,95 L1440,200 L0,200 Z" fill="rgba(186,230,253,0.32)" />
+                      <path d="M0,95 C200,78 380,110 600,98 C820,86 940,68 1140,82 C1280,92 1380,100 1440,95" fill="none" stroke="rgba(255,255,255,0.75)" strokeWidth="1.4" />
+                      <path d="M0,128 C240,112 440,144 700,132 C960,120 1120,104 1300,118 C1380,124 1420,130 1440,128 L1440,200 L0,200 Z" fill="rgba(147,210,244,0.24)" />
+                      <path d="M0,162 C280,148 520,176 800,166 C1080,156 1260,146 1440,160 L1440,200 L0,200 Z" fill="rgba(217,240,196,0.30)" />
+                      <path d="M0,178 C320,168 640,190 960,180 C1200,172 1360,182 1440,178 L1440,200 L0,200 Z" fill="rgba(219,234,254,0.42)" />
+                    </svg>
+                  ))}
+                </div>
               </div>
             </div>
 
             {/* Mid subtle wave */}
             <div className="absolute left-0 right-0 overflow-hidden" style={{ top: '38%', height: '100px' }}>
-              <div className="wave-flow-2" style={{ width: '200%', display: 'flex' }}>
-                {[0, 1].map(k => (
-                  <svg key={k} viewBox="0 0 1440 100" style={{ width: '50%', flexShrink: 0 }} preserveAspectRatio="none">
-                    <path d="M0,50 C288,10 576,90 864,50 C1152,10 1296,70 1440,50 L1440,100 L0,100 Z" fill="rgba(186,230,253,0.12)" />
-                  </svg>
-                ))}
+              <div className="wave-bob-2">
+                <div className="wave-flow-2" style={{ width: '200%', display: 'flex' }}>
+                  {[0, 1].map(k => (
+                    <svg key={k} viewBox="0 0 1440 100" style={{ width: '50%', flexShrink: 0 }} preserveAspectRatio="none">
+                      <path d="M0,52 C220,40 420,62 660,54 C900,46 1060,36 1260,46 C1360,51 1420,54 1440,52 L1440,100 L0,100 Z" fill="rgba(186,230,253,0.14)" />
+                      <path d="M0,52 C220,40 420,62 660,54 C900,46 1060,36 1260,46 C1360,51 1420,54 1440,52" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.1" />
+                    </svg>
+                  ))}
+                </div>
               </div>
             </div>
 
             {/* Top wave */}
             <div className="absolute top-0 left-0 right-0 overflow-hidden" style={{ height: '130px' }}>
-              <div className="wave-flow-3" style={{ width: '200%', display: 'flex' }}>
-                {[0, 1].map(k => (
-                  <svg key={k} viewBox="0 0 1440 130" style={{ width: '50%', flexShrink: 0 }} preserveAspectRatio="none">
-                    <path d="M0,65 C192,22 384,108 576,65 C768,22 960,108 1152,65 C1296,35 1380,85 1440,65 L1440,0 L0,0 Z" fill="rgba(219,234,254,0.55)" />
-                  </svg>
-                ))}
+              <div className="wave-bob-3">
+                <div className="wave-flow-3" style={{ width: '200%', display: 'flex' }}>
+                  {[0, 1].map(k => (
+                    <svg key={k} viewBox="0 0 1440 130" style={{ width: '50%', flexShrink: 0 }} preserveAspectRatio="none">
+                      <path d="M0,68 C240,54 460,80 720,70 C980,60 1160,48 1340,60 C1400,64 1430,68 1440,68 L1440,0 L0,0 Z" fill="rgba(219,234,254,0.55)" />
+                    </svg>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
