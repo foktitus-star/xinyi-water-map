@@ -159,7 +159,7 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
       const response = await fetch('/api/summarize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: description })
+        body: JSON.stringify({ text: description, feedbackType })
       });
 
       const resData = await response.json();
@@ -419,9 +419,10 @@ export default function NodeFeedbackForm({ lat, lng, stationId, stationName, onC
       const response = await fetch('/api/describe-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           imageBase64: base64Url,
-          mimeType: 'image/jpeg'
+          mimeType: 'image/jpeg',
+          feedbackType
         })
       });
 

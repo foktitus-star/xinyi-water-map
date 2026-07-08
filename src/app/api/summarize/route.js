@@ -4,7 +4,7 @@ export const preferredRegion = 'hnd1';
 
 export async function POST(request) {
   try {
-    const { text } = await request.json();
+    const { text, feedbackType } = await request.json();
 
     if (!text || !text.trim()) {
       return NextResponse.json({ error: '請輸入需要整理的文字。' }, { status: 400 });
@@ -18,8 +18,21 @@ export async function POST(request) {
       }, { status: 400 });
     }
 
-    // 建立向 Gemini API 發送的 Prompt
-    const systemPrompt = `你是一個台北信義區在地水文與地景導覽專家。
+    // 依回饋性質切換 Prompt：環境通報整理成客觀通報紀錄、地方記憶保留人文故事語氣
+    const reportPrompt = `你正在協助整理一則環境問題通報。
+使用者在通報台北信義區的環境問題（如積水、異味、疑似污染、垃圾堆積、缺乏遮蔭等）時，使用語音輸入了一段現場觀察，可能含有斷句或語音辨識錯誤。
+請將這段口語文字整理成通順、精確、中立的通報紀錄，保留所有具體細節（地點、現象、時間、範圍等）。
+
+請遵循以下規則：
+1. 請勿添加任何虛構的事實，只根據使用者提供的內容進行整理，不要臆測成因或責任歸屬。
+2. 使用台灣繁體中文，避免簡體字或大陸用語。
+3. 語氣中立客觀，如同稽查或通報紀錄，不要抒情或美化；若原文含情緒性字眼，請轉為中性描述。
+4. 整理後控制在 80-160 字以內，以「單一完整段落」呈現，不要列點。
+
+原始口語文字：
+「${text.trim()}」`;
+
+    const memoryPrompt = `你是一個台北信義區在地水文與地景導覽專家。
 使用者在參與導覽時，使用語音輸入了一段關於特定地點的回憶、故事或觀察。
 請幫忙將以下這段口語化、可能含有斷句或語音辨識錯誤的文字，整理成通順、流暢、精煉且保留所有核心細節的繁體中文地景故事摘要。
 
@@ -31,6 +44,8 @@ export async function POST(request) {
 
 原始口語文字：
 「${text.trim()}」`;
+
+    const systemPrompt = feedbackType === 'report' ? reportPrompt : memoryPrompt;
 
     // 呼叫 Gemini 2.5 Flash 產生內容
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;

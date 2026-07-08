@@ -4,7 +4,7 @@ export const preferredRegion = 'hnd1';
 
 export async function POST(request) {
   try {
-    const { imageBase64, mimeType } = await request.json();
+    const { imageBase64, mimeType, feedbackType } = await request.json();
 
     if (!imageBase64) {
       return NextResponse.json({ error: '請提供圖片資料。' }, { status: 400 });
@@ -25,8 +25,23 @@ export async function POST(request) {
 
     const imageMimeType = mimeType || 'image/jpeg';
 
-    // 建立向 Gemini API 發送的多模態 Prompt
-    const prompt = `你是一個台北信義區在地水文與地景導覽專家。
+    // 依回饋性質切換 Prompt：環境通報需客觀觀察、地方記憶保留人文導覽語氣
+    const reportPrompt = `你是協助環境問題通報的客觀觀察員。
+使用者正在通報台北信義區的一個環境問題（如積水、異味、疑似污染、垃圾堆積、缺乏遮蔭等），並拍攝了這張現場照片。
+請以中立、精確、可供機關參考的角度，客觀描述照片內容：
+
+1. 如果照片中有可辨識的文字（如告示牌、路牌、門牌、店家招牌），請逐字轉錄，有助定位。
+2. 描述可見的環境問題徵狀：例如積水的範圍與深度線索、水體顏色與是否有油光或泡沫、垃圾的種類與堆積程度、異常的排放口或管線、周遭遮蔽物狀況等。
+3. 若有線索顯示問題的嚴重程度或是否為近期發生（如水漬痕跡、鏽蝕、腐化程度），請一併指出。
+
+請遵循以下規則：
+1. 使用台灣繁體中文。
+2. 語氣中立客觀，如同稽查紀錄，不要抒情、不要美化、不要加入懷舊或導覽風格的形容。
+3. 只描述照片中實際可見的事物，不要臆測照片外的成因或責任歸屬。
+4. 輸出請控制在 50-150 字以內，以「單一完整段落」呈現，不要列點。
+5. 如果照片模糊或無法辨識，請誠實說明。`;
+
+    const memoryPrompt = `你是一個台北信義區在地水文與地景導覽專家。
 使用者在參與水文走讀導覽時拍攝了這張照片。
 請仔細觀察照片內容，完成以下任務：
 
@@ -39,6 +54,8 @@ export async function POST(request) {
 2. 語氣自然、溫暖、生動，符合文史走讀導覽的風格。
 3. 輸出請控制在 50-150 字以內，以「單一完整段落」呈現，不要列點。
 4. 如果照片模糊或無法辨識，請誠實說明。`;
+
+    const prompt = feedbackType === 'report' ? reportPrompt : memoryPrompt;
 
     // 呼叫 Gemini 2.5 Flash 多模態 API
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
