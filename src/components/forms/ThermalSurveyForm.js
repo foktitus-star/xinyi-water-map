@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { useState, useCallback, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -28,6 +28,44 @@ const RELATION_OPTIONS = ['居住', '工作', '就學', '經常經過', '研究�
 
 // 信義區中心
 const XINYI_CENTER = [25.033, 121.565];
+
+// 地標快速跳轉（六張犁/永春座標取自 routeData.js 站點實測值）
+const LANDMARKS = [
+  { name: '台北101', lat: 25.0339, lng: 121.5645 },
+  { name: '市政府站', lat: 25.041, lng: 121.5652 },
+  { name: '象山站', lat: 25.0329, lng: 121.57 },
+  { name: '永春站', lat: 25.04087, lng: 121.5758 },
+  { name: '後山埤站', lat: 25.0447, lng: 121.5824 },
+  { name: '六張犁站', lat: 25.0241, lng: 121.553 },
+  { name: '吳興街', lat: 25.0277, lng: 121.5583 },
+];
+
+// 信義區大致範圍（viewbox：minLon,maxLat,maxLon,minLat），供搜尋優先命中區內結果
+const XINYI_VIEWBOX = '121.539,25.050,121.601,25.015';
+
+// Nominatim 地點搜尋：先綁信義區範圍，搵唔到再放寬全台北重試
+// （教訓：過度限縮的篩選會令正確結果全消失，必須有 fallback）
+async function searchXinyiPlace(q) {
+  const base = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=zh-TW';
+  let res = await fetch(`${base}&viewbox=${XINYI_VIEWBOX}&bounded=1&q=${encodeURIComponent(q)}`);
+  let arr = res.ok ? await res.json() : [];
+  if (!arr.length) {
+    res = await fetch(`${base}&q=${encodeURIComponent(q + ' 信義區 臺北市')}`);
+    arr = res.ok ? await res.json() : [];
+  }
+  return arr[0] || null;
+}
+
+// 由外部觸發地圖飛行（target 每次點擊都是新物件，effect 才會重跑）
+function FlyTo({ target }) {
+  const map = useMap();
+  useEffect(() => {
+    if (target) {
+      map.setView([target.lat, target.lng], target.zoom ?? 16, { animate: false });
+    }
+  }, [target, map]);
+  return null;
+}
 
 // ── 地圖點選器 ──
 
@@ -74,6 +112,30 @@ async function reverseGeocode(lat, lng) {
  */
 function LocationQuestion({ label, hint, color, value, onChange, coord, onCoordChange }) {
   const [geocoding, setGeocoding] = useState(false);
+  const [flyTarget, setFlyTarget] = useState(null);
+  const [searchText, setSearchText] = useState('');
+  const [searching, setSearching] = useState(false);
+  const [searchMiss, setSearchMiss] = useState(false);
+
+  const handleSearch = useCallback(async () => {
+    const q = searchText.trim();
+    if (!q || searching) return;
+    setSearching(true);
+    setSearchMiss(false);
+    try {
+      const hit = await searchXinyiPlace(q);
+      if (hit) {
+        setFlyTarget({ lat: +hit.lat, lng: +hit.lon, zoom: 16, nonce: Date.now() });
+      } else {
+        setSearchMiss(true);
+      }
+    } catch (err) {
+      console.warn('地點搜尋失敗:', err);
+      setSearchMiss(true);
+    } finally {
+      setSearching(false);
+    }
+  }, [searchText, searching]);
 
   const handlePick = useCallback(
     async (latlng) => {
@@ -100,14 +162,52 @@ function LocationQuestion({ label, hint, color, value, onChange, coord, onCoordC
       </label>
       {hint && <p className="text-slate-400 text-xs mb-3 leading-relaxed">{hint}</p>}
 
+      {/* 地標快速跳轉：撳一下飛到該處（zoom 16 會顯示大部分街名） */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 mb-1.5 -mx-1 px-1">
+        {LANDMARKS.map((lm) => (
+          <button
+            key={lm.name}
+            type="button"
+            onClick={() => setFlyTarget({ lat: lm.lat, lng: lm.lng, zoom: 16, nonce: Date.now() })}
+            className="flex-shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full text-xs text-slate-600 bg-sky-50 border border-sky-200 hover:bg-sky-100 active:scale-95 transition-all cursor-pointer"
+          >
+            📍{lm.name}
+          </button>
+        ))}
+      </div>
+
+      {/* 地點搜尋：跳到該處後再點地圖落標 */}
+      <div className="flex gap-2 mb-2">
+        <input
+          type="text"
+          value={searchText}
+          onChange={(e) => { setSearchText(e.target.value); setSearchMiss(false); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); } }}
+          placeholder="搜尋街名或地標，例如：松高路"
+          className="flex-1 px-3 py-2 rounded-xl border border-sky-200 bg-white text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 placeholder:text-slate-300"
+        />
+        <button
+          type="button"
+          onClick={handleSearch}
+          disabled={searching}
+          className="px-4 py-2 rounded-xl text-sm text-white bg-sky-500 hover:bg-sky-400 transition-colors cursor-pointer disabled:opacity-50 flex-shrink-0"
+        >
+          {searching ? '搜尋中…' : '🔍 搜尋'}
+        </button>
+      </div>
+      {searchMiss && (
+        <p className="text-xs text-rose-500 mb-2">找不到這個地點，請換個寫法（例如加上「路」「街」），或改用上方地標按鈕。</p>
+      )}
+
       <div className="rounded-xl overflow-hidden border border-sky-100 relative" style={{ height: '230px' }}>
         <MapContainer
           center={XINYI_CENTER}
-          zoom={14}
+          zoom={15}
           scrollWheelZoom={false}
           attributionControl={false}
           style={{ height: '100%', width: '100%' }}
         >
+          <FlyTo target={flyTarget} />
           {/* 與主地圖一致：CARTO light 底圖＋水文色調 filter（原生 OSM 太雜） */}
           <TileLayer
             url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
