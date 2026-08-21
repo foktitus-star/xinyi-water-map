@@ -43,7 +43,7 @@ const LANDMARKS = [
 // 信義區大致範圍（viewbox：minLon,maxLat,maxLon,minLat），供搜尋優先命中區內結果
 const XINYI_VIEWBOX = '121.539,25.050,121.601,25.015';
 
-// Nominatim 地點搜尋：先綁信義區範圍，搵唔到再放寬全台北重試
+// Nominatim 地點搜尋：先限定信義區範圍，找不到再放寬至全台北重試
 // （教訓：過度限縮的篩選會令正確結果全消失，必須有 fallback）
 async function searchXinyiPlace(q) {
   const base = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=zh-TW';
@@ -162,43 +162,50 @@ function LocationQuestion({ label, hint, color, value, onChange, coord, onCoordC
       </label>
       {hint && <p className="text-slate-400 text-xs mb-3 leading-relaxed">{hint}</p>}
 
-      {/* 地標快速跳轉：撳一下飛到該處（zoom 16 會顯示大部分街名） */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 mb-1.5 -mx-1 px-1">
-        {LANDMARKS.map((lm) => (
+      {/* 步驟①：移動地圖（僅導航，非作答）。用框線和標題與作答區隔開，避免誤會按了地標就算答完 */}
+      <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 mb-3">
+        <p className="text-xs font-semibold text-slate-500 mb-2">
+          ① 先移動地圖到大概位置<span className="text-slate-400 font-normal">（這一步只是移動畫面，還不算作答）</span>
+        </p>
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+          {LANDMARKS.map((lm) => (
+            <button
+              key={lm.name}
+              type="button"
+              onClick={() => setFlyTarget({ lat: lm.lat, lng: lm.lng, zoom: 16, nonce: Date.now() })}
+              className="flex-shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full text-xs text-slate-600 bg-white border border-sky-200 hover:bg-sky-100 active:scale-95 transition-all cursor-pointer"
+            >
+              🧭 {lm.name}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2 mt-2">
+          <input
+            type="text"
+            value={searchText}
+            onChange={(e) => { setSearchText(e.target.value); setSearchMiss(false); }}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); } }}
+            placeholder="或搜尋街名，例如：松高路"
+            className="flex-1 min-w-0 px-3 py-2 rounded-xl border border-sky-200 bg-white text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 placeholder:text-slate-300"
+          />
           <button
-            key={lm.name}
             type="button"
-            onClick={() => setFlyTarget({ lat: lm.lat, lng: lm.lng, zoom: 16, nonce: Date.now() })}
-            className="flex-shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full text-xs text-slate-600 bg-sky-50 border border-sky-200 hover:bg-sky-100 active:scale-95 transition-all cursor-pointer"
+            onClick={handleSearch}
+            disabled={searching}
+            className="px-4 py-2 rounded-xl text-sm text-white bg-sky-500 hover:bg-sky-400 transition-colors cursor-pointer disabled:opacity-50 flex-shrink-0"
           >
-            📍{lm.name}
+            {searching ? '搜尋中…' : '🔍 搜尋'}
           </button>
-        ))}
+        </div>
+        {searchMiss && (
+          <p className="text-xs text-rose-500 mt-2">找不到這個地點，請換個寫法（例如加上「路」「街」），或改用上方地標按鈕。</p>
+        )}
       </div>
 
-      {/* 地點搜尋：跳到該處後再點地圖落標 */}
-      <div className="flex gap-2 mb-2">
-        <input
-          type="text"
-          value={searchText}
-          onChange={(e) => { setSearchText(e.target.value); setSearchMiss(false); }}
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); } }}
-          placeholder="搜尋街名或地標，例如：松高路"
-          className="flex-1 px-3 py-2 rounded-xl border border-sky-200 bg-white text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 placeholder:text-slate-300"
-        />
-        <button
-          type="button"
-          onClick={handleSearch}
-          disabled={searching}
-          className="px-4 py-2 rounded-xl text-sm text-white bg-sky-500 hover:bg-sky-400 transition-colors cursor-pointer disabled:opacity-50 flex-shrink-0"
-        >
-          {searching ? '搜尋中…' : '🔍 搜尋'}
-        </button>
-      </div>
-      {searchMiss && (
-        <p className="text-xs text-rose-500 mb-2">找不到這個地點，請換個寫法（例如加上「路」「街」），或改用上方地標按鈕。</p>
-      )}
-
+      {/* 步驟②：真正作答 */}
+      <p className="text-xs font-semibold text-amber-700 mb-1.5">
+        ② 在地圖上<span className="underline decoration-amber-400 decoration-2 underline-offset-2">點一下標記地點</span>，出現圖釘才算完成這一題
+      </p>
       <div className="rounded-xl overflow-hidden border border-sky-100 relative" style={{ height: '230px' }}>
         <MapContainer
           center={XINYI_CENTER}
