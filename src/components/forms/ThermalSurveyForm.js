@@ -108,7 +108,11 @@ function LocationQuestion({ label, hint, color, value, onChange, coord, onCoordC
           attributionControl={false}
           style={{ height: '100%', width: '100%' }}
         >
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          {/* 與主地圖一致：CARTO light 底圖＋水文色調 filter（原生 OSM 太雜） */}
+          <TileLayer
+            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+            className="map-tiles-tinted"
+          />
           <ClickCapture onPick={handlePick} />
           {coord && <Marker position={[coord.lat, coord.lng]} icon={makePinIcon(color)} />}
         </MapContainer>
