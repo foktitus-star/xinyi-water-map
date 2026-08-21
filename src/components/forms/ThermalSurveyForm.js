@@ -315,6 +315,14 @@ export default function ThermalSurveyForm() {
         <label className="block text-slate-800 font-semibold mb-3 leading-relaxed">
           夏天在信義區戶外活動時，整體的熱舒適感受是？ <span className="text-rose-500">*</span>
         </label>
+        <div className="flex flex-col sm:flex-row sm:justify-between gap-1.5 mb-3">
+          <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm md:text-base font-semibold text-rose-600 bg-rose-50 border border-rose-200">
+            🥵 1 分＝{scaleLabels[1]}
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm md:text-base font-semibold text-sky-700 bg-sky-50 border border-sky-200 sm:justify-end">
+            😌 5 分＝{scaleLabels[5]}
+          </span>
+        </div>
         <div className="flex items-center justify-between gap-2">
           {['1', '2', '3', '4', '5'].map((v) => (
             <button
@@ -331,9 +339,14 @@ export default function ThermalSurveyForm() {
             </button>
           ))}
         </div>
-        <div className="flex justify-between mt-2 text-[11px] text-slate-400">
-          <span>1｜{scaleLabels[1]}</span>
-          <span>5｜{scaleLabels[5]}</span>
+        <div
+          className="mt-2 h-1.5 rounded-full"
+          style={{ background: 'linear-gradient(90deg, #f43f5e 0%, #f59e0b 50%, #0ea5e9 100%)' }}
+          aria-hidden="true"
+        />
+        <div className="flex justify-between mt-1 text-xs md:text-sm text-slate-500 font-medium">
+          <span>← 愈悶熱</span>
+          <span>愈涼爽 →</span>
         </div>
       </div>
 

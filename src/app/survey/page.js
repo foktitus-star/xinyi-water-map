@@ -16,7 +16,8 @@ const ThermalSurveyForm = dynamic(() => import('@/components/forms/ThermalSurvey
 
 export default function SurveyPage() {
   return (
-    <div className="min-h-dvh bg-sky-50">
+    // globals.css 將 html/body 鎖 overflow:hidden（全屏地圖需要），此頁必須自成滾動容器
+    <div className="h-dvh overflow-y-auto bg-sky-50">
       {/* ── Top Header ── */}
       <header
         className="sticky top-0 z-[3000] w-full h-16 backdrop-blur-md border-b border-sky-200/60 flex items-center justify-between px-4 md:px-6 shadow-sm"
