@@ -346,6 +346,15 @@ export default function HomePage() {
 
         <div className="flex items-center gap-2 md:gap-3">
           <Link
+            href="/survey"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 border border-amber-400/40 transition-all duration-300 cursor-pointer shadow-md shadow-orange-200 active:scale-95 animate-pulse hover:animate-none"
+            title="信義區熱舒適經驗調查"
+          >
+            <span>🌡️</span>
+            <span className="hidden md:inline">熱舒適問卷</span>
+            <span className="md:hidden">問卷</span>
+          </Link>
+          <Link
             href="/privacy"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs text-slate-500 bg-sky-50/80 border border-sky-200/70 hover:bg-sky-100 hover:text-sky-700 transition-all duration-300 cursor-pointer shadow-sm active:scale-95"
           >
@@ -916,8 +925,8 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* CTA Button */}
-            <div className="flex justify-center z-20 mt-1">
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 z-20 mt-1 w-full sm:w-auto">
               <button
                 onClick={() => setShowLanding(false)}
                 className="w-full sm:w-auto px-10 py-4 rounded-2xl text-sm font-semibold text-white bg-sky-600 hover:bg-sky-500 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer shadow-lg shadow-sky-300/40 hover:shadow-sky-400/60 active:scale-95 flex items-center justify-center gap-2 border border-sky-400/30 group tracking-widest"
@@ -926,6 +935,15 @@ export default function HomePage() {
                 <span>展開水文地圖探索</span>
                 <span className="group-hover:translate-x-1 transition-transform text-sky-200">→</span>
               </button>
+              <Link
+                href="/survey"
+                className="w-full sm:w-auto px-10 py-4 rounded-2xl text-sm font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer shadow-lg shadow-orange-200 hover:shadow-orange-300 active:scale-95 flex items-center justify-center gap-2 border border-amber-400/30 group tracking-widest"
+                style={{ fontFamily: 'var(--font-serif)' }}
+              >
+                <span>🌡️</span>
+                <span>填寫熱舒適問卷</span>
+                <span className="group-hover:translate-x-1 transition-transform text-amber-100">→</span>
+              </Link>
             </div>
 
             {/* Section title */}
