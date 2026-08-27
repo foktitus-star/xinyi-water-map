@@ -33,6 +33,7 @@ L.Icon.Default.mergeOptions({
 });
 
 import SatelliteLayer, { SatelliteControl, SATELLITE_MAPS } from './layers/SatelliteLayer';
+import { CARTO_LIGHT_URL, CARTO_ATTRIBUTION } from '@/lib/basemap';
 
 
 // ── helpers ────────────────────────────────────────────────
@@ -323,8 +324,8 @@ export default function MapView({ onStartTour }) {
         preferCanvas={true}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          attribution={CARTO_ATTRIBUTION}
+          url={CARTO_LIGHT_URL}
           className="map-tiles-tinted"
         />
         <FitBoundsOnLoad />

@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 const proj4 = require('proj4');
 
 proj4.defs(
@@ -6,8 +7,21 @@ proj4.defs(
   '+proj=tmerc +lat_0=0 +lon_0=121 +k=0.9999 +x_0=250000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs'
 );
 
-const inputFile = 'C:\\Users\\samli\\Antigravity-智慧城市\\TaipeiTree.json';
-const outputFile = 'C:\\Users\\samli\\Antigravity-智慧城市\\xinyi-water-map-main\\xinyi-water-map-main\\public\\TaipeiTree_filtered.json';
+// 一次性資料前處理腳本：把臺北市行道樹原始資料（TWD97/EPSG:3826）轉成 WGS84
+// 並裁切到信義區範圍，輸出成地圖圖層讀的 public/TaipeiTree_filtered.json。
+//
+// 用法：node processTrees.js [輸入檔路徑]
+//   未給參數時讀專案根目錄的 TaipeiTree.json。
+//   原始資料來源：data.taipei 行道樹資料集
+//   （亦可由 https://tppkl.blob.core.windows.net/blobfs/TaipeiTree.csv 轉成 JSON）
+const inputFile = process.argv[2] || path.join(__dirname, 'TaipeiTree.json');
+const outputFile = path.join(__dirname, 'public', 'TaipeiTree_filtered.json');
+
+if (!fs.existsSync(inputFile)) {
+  console.error(`找不到輸入檔：${inputFile}`);
+  console.error('請下載行道樹原始資料後放到專案根目錄，或用 node processTrees.js <檔案路徑> 指定。');
+  process.exit(1);
+}
 
 console.log('Reading input file...');
 const rawData = fs.readFileSync(inputFile, 'utf-8');

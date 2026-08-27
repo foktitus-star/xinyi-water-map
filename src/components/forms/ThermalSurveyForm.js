@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { CARTO_LIGHT_URL } from '@/lib/basemap';
 
 // ── Google Form 對接設定 ──
 // 表單：信義區「體感溫度」地圖：熱舒適經驗調查
@@ -217,7 +218,7 @@ function LocationQuestion({ label, hint, color, value, onChange, coord, onCoordC
           <FlyTo target={flyTarget} />
           {/* 與主地圖一致：CARTO light 底圖＋水文色調 filter（原生 OSM 太雜） */}
           <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+            url={CARTO_LIGHT_URL}
             className="map-tiles-tinted"
           />
           <ClickCapture onPick={handlePick} />
