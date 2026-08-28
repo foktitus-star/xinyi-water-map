@@ -8,9 +8,10 @@ proj4.defs(
   '+proj=tmerc +lat_0=0 +lon_0=121 +k=0.9999 +x_0=250000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs'
 );
 
-export default function ComfortLayer({ showTrees, showSidewalks }) {
+export default function ComfortLayer({ showTrees, showSidewalks, showGreen }) {
   const [trees, setTrees] = useState([]);
   const [sidewalks, setSidewalks] = useState(null);
+  const [green, setGreen] = useState(null);
 
   // Fetch Trees (Layer A)
   useEffect(() => {
@@ -30,6 +31,18 @@ export default function ComfortLayer({ showTrees, showSidewalks }) {
       })
       .catch((err) => console.error('Failed to load trees:', err));
   }, [showTrees, trees]);
+
+  // Fetch 公園綠地與樹林（Layer C）
+  // 行道樹資料只有道路兩旁的樹，象山與各公園一帶是空白；
+  // 這層補上公園、綠地、樹林的面狀範圍，讓綠覆蓋的樣貌完整。
+  // 注意：這是「綠地範圍」而非實際樹冠，兩者性質不同，所以另開一層而不併入行道樹。
+  useEffect(() => {
+    if (!showGreen || green) return;
+    fetch('/data/xinyi_green.json')
+      .then((res) => res.json())
+      .then((data) => setGreen(data))
+      .catch((err) => console.error('Failed to load green spaces:', err));
+  }, [showGreen, green]);
 
   // Fetch Sidewalks (Layer B)
   useEffect(() => {
@@ -78,8 +91,40 @@ export default function ComfortLayer({ showTrees, showSidewalks }) {
       .catch((err) => console.error('Failed to load sidewalks:', err));
   }, [showSidewalks, sidewalks]);
 
+  // 綠地類型的中文說明
+  const GREEN_KIND_LABEL = {
+    park: '公園',
+    garden: '花園／綠地',
+    grass: '草地',
+    wood: '樹林',
+    forest: '森林',
+    scrub: '灌木叢',
+    meadow: '草原',
+    grassland: '草生地',
+    recreation_ground: '遊憩用地',
+    village_green: '鄰里綠地',
+    cemetery: '墓園綠地'
+  };
+
   return (
     <LayerGroup>
+      {showGreen && green && (
+        <GeoJSON
+          data={green}
+          style={{ color: '#22c55e', weight: 1, opacity: 0.45, fillColor: '#4ade80', fillOpacity: 0.18 }}
+          onEachFeature={(feature, layer) => {
+            const kind = GREEN_KIND_LABEL[feature.properties?.kind] || '綠地';
+            const name = feature.properties?.name;
+            layer.bindPopup(
+              `<div class="p-1 min-w-[120px]">
+                 <h3 class="text-sm font-bold text-slate-800 border-b border-slate-200 pb-1 mb-2">🌲 ${name || kind}</h3>
+                 <div class="text-xs text-slate-600">類型：<span class="font-medium text-slate-700">${kind}</span></div>
+               </div>`
+            );
+          }}
+        />
+      )}
+
       {showSidewalks && sidewalks && (
         <GeoJSON
           data={sidewalks}

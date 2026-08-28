@@ -136,6 +136,7 @@ export default function MapView({ onStartTour }) {
   // Open Data layers state (Toggles only)
   const [showTrees, setShowTrees] = useState(false);
   const [showSidewalks, setShowSidewalks] = useState(false);
+  const [showGreen, setShowGreen] = useState(false);
   const [showZoning, setShowZoning] = useState(false);
   const [zoningOpacity, setZoningOpacity] = useState(0.45);
 
@@ -348,7 +349,7 @@ export default function MapView({ onStartTour }) {
 
         {/* ── Modular Layers ── */}
         <ZoningLayer showZoning={showZoning} opacity={zoningOpacity} />
-        <ComfortLayer showTrees={showTrees} showSidewalks={showSidewalks} />
+        <ComfortLayer showTrees={showTrees} showSidewalks={showSidewalks} showGreen={showGreen} />
         <ShadeMapLayer
           show={showShadeMap}
           date={shadeMapDate}
@@ -661,6 +662,21 @@ export default function MapView({ onStartTour }) {
                     <span className="text-sm leading-tight text-slate-700">🌳 行道樹遮蔭</span>
                   </label>
                   <InfoTooltip id="trees" />
+                </div>
+
+                <div className="flex items-center justify-between gap-2 hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors w-full">
+                  <label
+                    className="flex items-center gap-3 cursor-pointer flex-1"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={showGreen}
+                      onChange={() => setShowGreen(!showGreen)}
+                      className="w-5 h-5 rounded accent-[#22c55e] cursor-pointer"
+                    />
+                    <span className="text-sm leading-tight text-slate-700">🌲 公園綠地與樹林</span>
+                  </label>
+                  <InfoTooltip id="green" />
                 </div>
 
                 <div className="flex items-center justify-between gap-2 hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors w-full">

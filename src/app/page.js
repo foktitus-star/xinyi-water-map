@@ -265,7 +265,7 @@ export default function HomePage() {
             element: '#tour-open-data-toggles',
             popover: {
               title: '🌳 開放資料與即時溫度',
-              description: '包含台北市政府開放資料（行道樹遮蔭、人行道範圍、都市計畫分區）以及即時溫度分布。勾選後可利用不透明度滑桿（0-100%）自由調整，幫助您進行跨圖層對照！',
+              description: '包含台北市政府開放資料（行道樹遮蔭、人行道範圍、都市計畫分區）、開放街圖的公園綠地與樹林，以及即時溫度分布。勾選後可利用不透明度滑桿（0-100%）自由調整，幫助您進行跨圖層對照！',
               side: 'left',
               align: 'start'
             }
@@ -604,7 +604,8 @@ export default function HomePage() {
                   <h3 className="text-xl font-bold text-slate-900 mb-2">🌳 開放資料圖層</h3>
                   <p className="text-slate-600 mb-3">台北市政府開放資料：</p>
                   <ul className="text-sm text-slate-600 space-y-2 ml-4">
-                    <li>• <strong>行道樹遮蔭</strong> - 街道樹木覆蓋範圍</li>
+                    <li>• <strong>行道樹遮蔭</strong> - 街道樹木覆蓋範圍（僅道路兩旁，不含公園）</li>
+                    <li>• <strong>公園綠地與樹林</strong> - 公園、草地、樹林等面狀綠地，補足行道樹資料未涵蓋的象山與各公園</li>
                     <li>• <strong>人行道範圍</strong> - 可行走的人行道區域</li>
                     <li>• <strong>都市計畫分區</strong> - 信義區的都市計畫分區</li>
                   </ul>
