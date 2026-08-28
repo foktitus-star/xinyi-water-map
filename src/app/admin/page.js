@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import SurveyAnalysisPanel from '@/components/admin/SurveyAnalysisPanel';
 import Link from 'next/link';
 
 export default function AdminPage() {
@@ -11,6 +12,8 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'approved', 'rejected'
+  // 後台分區：'review' 地景審核、'survey' 熱舒適問卷分析
+  const [section, setSection] = useState('review');
   const [typeFilter, setTypeFilter] = useState('all'); // 'all', 'memory', 'report'
   const [actioningId, setActioningId] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -339,7 +342,37 @@ export default function AdminPage() {
 
       {/* Main Content */}
       <main className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-6 overflow-y-auto space-y-6">
-        
+
+        {/* 後台分區切換 */}
+        <div className="flex gap-1 border-b border-white/10">
+          {[
+            ['review', '🗂️ 地景審核'],
+            ['survey', '📊 熱舒適問卷分析']
+          ].map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setSection(key)}
+              className={`px-4 py-2.5 text-sm font-bold rounded-t-lg transition-colors border-b-2 -mb-px ${
+                section === key
+                  ? 'text-sky-300 border-sky-400 bg-sky-500/5'
+                  : 'text-slate-500 border-transparent hover:text-slate-300'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {section === 'survey' && (
+          <SurveyAnalysisPanel
+            passcode={
+              typeof window !== 'undefined' ? sessionStorage.getItem('admin_passcode') || passcode : passcode
+            }
+          />
+        )}
+
+        {section === 'review' && (
+        <>
         {/* Statistics Panels */}
         <div className="grid grid-cols-3 gap-4 md:gap-6">
           <div 
@@ -706,6 +739,8 @@ export default function AdminPage() {
             </div>
           )}
         </div>
+        </>
+        )}
       </main>
 
       {/* AI 通報彙整摘要 Modal */}
