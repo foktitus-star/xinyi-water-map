@@ -4,10 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { QUESTIONS, REASON_LABEL, RADII } from '@/lib/survey-analysis';
 
-const SurveyPointsMap = dynamic(() => import('./SurveyPointsMap'), {
+// 直接重用公開頁的完整地圖，後台看到的圖層與公開頁一模一樣，
+// 只是額外傳入 surveyPoints，多出一層只有後台看得到的「問卷地點」。
+const MapView = dynamic(() => import('@/components/MapView'), {
   ssr: false,
   loading: () => (
-    <div className="h-[460px] rounded-xl bg-slate-800 flex items-center justify-center text-sm text-slate-400">
+    <div className="h-[640px] rounded-xl bg-slate-800 flex items-center justify-center text-sm text-slate-400">
       地圖載入中…
     </div>
   )
@@ -173,8 +175,17 @@ export default function SurveyAnalysisPanel({ passcode }) {
             ))}
           </div>
 
-          <Section title="問卷地點圖層" hint="紅＝最不舒適、藍＝最舒適、橙＝優先改善。點選圓點可看該點的疊圖分析結果。">
-            <SurveyPointsMap points={data.points} radius={radius} showRadius={showRadius} />
+          <Section
+            title="互動地圖（含問卷地點圖層）"
+            hint="與公開地圖完全相同的圖層都在——行道樹、公園綠地、人行道、都市計畫分區、地表溫度、日照陰影、古今地圖、衛星影像。右上角圖層面板最上方多了一組「後台專用」的問卷地點：紅＝最不舒適、藍＝最舒適、橙＝優先改善，點選圓點可看該點的疊圖分析結果。"
+          >
+            <div className="h-[640px] rounded-xl overflow-hidden border border-white/10">
+              <MapView
+                surveyPoints={data.points}
+                surveyRadius={radius}
+                showSurveyRadius={showRadius}
+              />
+            </div>
           </Section>
 
           <Section

@@ -33,6 +33,7 @@ L.Icon.Default.mergeOptions({
 });
 
 import SatelliteLayer, { SatelliteControl, SATELLITE_MAPS } from './layers/SatelliteLayer';
+import SurveyPointsLayer, { SURVEY_KIND_STYLE } from './layers/SurveyPointsLayer';
 import { CARTO_LIGHT_URL, CARTO_ATTRIBUTION } from '@/lib/basemap';
 
 
@@ -127,7 +128,13 @@ const reportIcon = typeof window !== 'undefined'
   ? makeCommunityIcon('⚠️', '#dc2626', '#fef2f2') : null;
 
 // ── Main map component ─────────────────────────────────────
-export default function MapView({ onStartTour }) {
+export default function MapView({
+  onStartTour,
+  // 以下只有後台會傳：帶入問卷點位就會多出一層「問卷地點」，公開頁不傳、不渲染。
+  surveyPoints = null,
+  surveyRadius = 50,
+  showSurveyRadius = true
+}) {
   const [visibility, setVisibility] = useState(
     routes.map(() => true)
   );
@@ -137,6 +144,8 @@ export default function MapView({ onStartTour }) {
   const [showTrees, setShowTrees] = useState(false);
   const [showSidewalks, setShowSidewalks] = useState(false);
   const [showGreen, setShowGreen] = useState(false);
+  // 問卷地點圖層（後台專用）：各類型可個別開關
+  const [surveyVisible, setSurveyVisible] = useState({ hot: true, cool: true, improve: true });
   const [showZoning, setShowZoning] = useState(false);
   const [zoningOpacity, setZoningOpacity] = useState(0.45);
 
@@ -478,6 +487,16 @@ export default function MapView({ onStartTour }) {
           </Marker>
         ))}
 
+        {/* 問卷地點（後台專用，公開頁不會傳入 surveyPoints） */}
+        {surveyPoints && (
+          <SurveyPointsLayer
+            points={surveyPoints}
+            radius={surveyRadius}
+            showRadius={showSurveyRadius}
+            visible={surveyVisible}
+          />
+        )}
+
       </MapContainer>
 
       {/* ── Layer control panel (top-right) ─────────────── */}
@@ -488,7 +507,7 @@ export default function MapView({ onStartTour }) {
           border border-sky-200/60 rounded-2xl
           shadow-md text-slate-800
           transition-all duration-300 ease-in-out
-          ${expandPanel ? 'w-[88vw] max-w-72 p-4 md:p-5 flex flex-col max-h-[58dvh] md:max-h-[calc(100dvh-24px)]' : 'w-12 h-12 p-0 overflow-hidden'}
+          ${expandPanel ? 'w-[88vw] max-w-72 p-4 md:p-5 flex flex-col max-h-[58%] md:max-h-[calc(100%-24px)]' : 'w-12 h-12 p-0 overflow-hidden'}
         `}
       >
         {/* Toggle button */}
@@ -629,6 +648,47 @@ export default function MapView({ onStartTour }) {
                 )}
               </div>
             </div>
+
+            {/* 後台專用：問卷地點圖層 */}
+            {surveyPoints && (
+              <div className="w-full mb-3 pt-3 border-t border-slate-200">
+                <div className="flex items-center gap-1.5 mb-2 px-1">
+                  <span className="text-[10px] font-bold tracking-wider text-rose-600 bg-rose-50 border border-rose-200 rounded px-1.5 py-0.5">
+                    後台專用
+                  </span>
+                  <span className="text-xs font-semibold text-slate-600">熱舒適問卷地點</span>
+                </div>
+                <div className="space-y-1">
+                  {Object.entries(SURVEY_KIND_STYLE).map(([kind, st]) => {
+                    const n = surveyPoints.filter((p) => p.located && p.kind === kind).length;
+                    return (
+                      <label
+                        key={kind}
+                        className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors w-full"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={surveyVisible[kind]}
+                          onChange={() =>
+                            setSurveyVisible((v) => ({ ...v, [kind]: !v[kind] }))
+                          }
+                          className="w-5 h-5 rounded cursor-pointer"
+                          style={{ accentColor: st.color }}
+                        />
+                        <span className="text-sm leading-tight text-slate-700 flex-1">
+                          <span
+                            className="inline-block w-2.5 h-2.5 rounded-full mr-1.5 align-middle"
+                            style={{ background: st.color }}
+                          />
+                          {st.label}
+                        </span>
+                        <span className="text-xs text-slate-400 font-mono">{n}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Open Data toggles */}
             <div id="tour-open-data-toggles" className="w-full">
