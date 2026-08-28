@@ -349,7 +349,6 @@ export default function MapView({ onStartTour }) {
         <ComfortLayer showTrees={showTrees} showSidewalks={showSidewalks} />
         <ShadeMapLayer
           show={showShadeMap}
-          apiKey={process.env.NEXT_PUBLIC_SHADEMAP_API_KEY}
           date={shadeMapDate}
           opacity={shadeMapOpacity}
           showTrees={showTrees}

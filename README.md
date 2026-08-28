@@ -85,7 +85,6 @@ xinyi-water-map/
 |------|------|
 | `NODE_SHEETS_API_URL` / `SHEETS_API_URL` | Google Apps Script webhook（回饋寫入試算表） |
 | `GEMINI_API_KEY` | AI 語音整理與圖片轉譯 |
-| `NEXT_PUBLIC_SHADEMAP_API_KEY` | 日照陰影圖層 |
 | `NEXT_PUBLIC_CARTO_KEY` | CARTO 底圖金鑰（未設定時圖磚會被印上浮水印） |
 | `ADMIN_PASSCODE` | 管理後台 `/admin` 密碼 |
 | `GEE_PRIVATE_KEY` / `GEE_CLIENT_EMAIL` | 地表溫度圖層的 Google Earth Engine 服務帳號憑證 |
