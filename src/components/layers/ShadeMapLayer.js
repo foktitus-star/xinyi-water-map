@@ -1,43 +1,43 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useMap, Polygon, Pane } from 'react-leaflet';
 import SunCalc from 'suncalc';
 
-// Andrew's Monotone Chain algorithm to calculate convex hull of a set of 2D points [lng, lat]
-function getConvexHull(points) {
-  if (points.length <= 1) return points;
-  
-  // Sort points lexicographically by longitude (x), then latitude (y)
-  const sorted = [...points].sort((a, b) => a[0] !== b[0] ? a[0] - b[0] : a[1] - b[1]);
-  
-  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
-  
-  const lower = [];
-  for (let i = 0; i < sorted.length; i++) {
-    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], sorted[i]) <= 0) {
-      lower.pop();
-    }
-    lower.push(sorted[i]);
-  }
-  
-  const upper = [];
-  for (let i = sorted.length - 1; i >= 0; i--) {
-    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], sorted[i]) <= 0) {
-      upper.pop();
-    }
-    upper.push(sorted[i]);
-  }
-  
-  upper.pop();
-  lower.pop();
-  return lower.concat(upper);
-}
+// 公尺 → 經緯度的換算（台北信義區緯度約 25.03）
+const M_PER_DEG_LAT = 111000;
+const M_PER_DEG_LNG = 100500;
 
-export default function ShadeMapLayer({ show, date, opacity = 0.6, showTrees = false }) {
+// Overpass 請求的節流、重試與快取設定
+const FETCH_DEBOUNCE_MS = 500;
+const RETRY_DELAY_MS = 2000;
+const BBOX_CACHE_LIMIT = 24;
+
+export default function ShadeMapLayer({
+  show,
+  date,
+  opacity = 0.6,
+  showTrees = false,
+  onStatusChange
+}) {
   const map = useMap();
   const [buildings, setBuildings] = useState([]);
   const [trees, setTrees] = useState([]);
+
+  const bboxCacheRef = useRef(new Map());
+  const debounceRef = useRef(null);
+  const retryRef = useRef(null);
+  const requestIdRef = useRef(0);
+
+  // 用 ref 保存 callback，令 reportStatus 本身維持穩定，
+  // 避免外層每次 render 傳入新函式時觸發無窮的 effect 迴圈
+  const statusCbRef = useRef(onStatusChange);
+  useEffect(() => {
+    statusCbRef.current = onStatusChange;
+  }, [onStatusChange]);
+  const reportStatus = useCallback((status) => {
+    if (statusCbRef.current) statusCbRef.current(status);
+  }, []);
 
   // 1. Fetch Taipei Tree footprints (octagons) and cache them
   useEffect(() => {
@@ -106,8 +106,8 @@ export default function ShadeMapLayer({ show, date, opacity = 0.6, showTrees = f
             const dy = Math.sin(angle) * crownRadius; // north-south
 
             // Convert meters to lat/lng offsets around Taipei (Latitude ~25.033)
-            const treeLng = lng + (dx / 100500);
-            const treeLat = lat + (dy / 111000);
+            const treeLng = lng + (dx / M_PER_DEG_LNG);
+            const treeLat = lat + (dy / M_PER_DEG_LAT);
             coordinates.push([treeLng, treeLat]);
           }
 
@@ -124,20 +124,47 @@ export default function ShadeMapLayer({ show, date, opacity = 0.6, showTrees = f
   }, [show, showTrees]);
 
   // 2. Fetch OSM Building footprints in current viewport
-  const updateBuildings = async () => {
-    if (!show || map.getZoom() < 15) {
-      setBuildings([]);
-      return;
-    }
+  //    以視野 bbox 做快取鍵，避免小幅移動重複打 Overpass；失敗時自動重試一次。
+  const fetchBuildings = useCallback(
+    async (isRetry = false) => {
+      if (!show) {
+        setBuildings([]);
+        reportStatus('idle');
+        return;
+      }
 
-    try {
+      if (map.getZoom() < 15) {
+        setBuildings([]);
+        reportStatus('zoom');
+        return;
+      }
+
       const bounds = map.getBounds();
       const south = bounds.getSouth();
       const west = bounds.getWest();
       const north = bounds.getNorth();
       const east = bounds.getEast();
 
-      const query = `[out:json][timeout:15];
+      // 地圖容器尚未完成佈局時 getBounds() 會退化成一個點，
+      // 這種 bbox 查詢一定回空，直接略過等下次事件即可。
+      if (!(north > south) || !(east > west)) {
+        reportStatus('idle');
+        return;
+      }
+
+      const cacheKey = [south, west, north, east].map((v) => v.toFixed(3)).join(',');
+      const cached = bboxCacheRef.current.get(cacheKey);
+      if (cached) {
+        setBuildings(cached);
+        reportStatus('ready');
+        return;
+      }
+
+      const requestId = ++requestIdRef.current;
+      reportStatus('loading');
+
+      try {
+        const query = `[out:json][timeout:15];
         (
           way["building"](${south},${west},${north},${east});
           relation["building"](${south},${west},${north},${east});
@@ -146,84 +173,115 @@ export default function ShadeMapLayer({ show, date, opacity = 0.6, showTrees = f
         >;
         out skel qt;`;
 
-      const res = await fetch('/api/overpass', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ query })
-      });
-      if (!res.ok) return;
-      const data = await res.json();
+        const res = await fetch('/api/overpass', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ query })
+        });
+        if (!res.ok) throw new Error(`Overpass proxy returned ${res.status}`);
+        const data = await res.json();
 
-      const nodes = {};
-      data.elements.forEach((el) => {
-        if (el.type === 'node') {
-          nodes[el.id] = [el.lon, el.lat];
-        }
-      });
+        // 期間若已有更新的請求發出，這次結果作廢
+        if (requestId !== requestIdRef.current) return;
 
-      const seenIds = new Set();
-      const parsedBuildings = [];
-      data.elements.forEach((el) => {
-        if (el.type === 'way' && el.nodes) {
-          const buildingId = `building-${el.id}`;
-          if (seenIds.has(buildingId)) return;
-
-          const coordinates = el.nodes
-            .map((nid) => nodes[nid])
-            .filter((coord) => coord !== undefined);
-
-          if (coordinates.length > 2) {
-            // Ensure polygon is closed
-            if (
-              coordinates[0][0] !== coordinates[coordinates.length - 1][0] ||
-              coordinates[0][1] !== coordinates[coordinates.length - 1][1]
-            ) {
-              coordinates.push(coordinates[0]);
-            }
-
-            const height =
-              el.tags &&
-              (el.tags.height ||
-                (el.tags['building:levels']
-                  ? parseFloat(el.tags['building:levels']) * 3
-                  : 12));
-
-            seenIds.add(buildingId);
-            parsedBuildings.push({
-              id: buildingId,
-              coordinates: coordinates,
-              height: parseFloat(height) || 12
-            });
+        const nodes = {};
+        data.elements.forEach((el) => {
+          if (el.type === 'node') {
+            nodes[el.id] = [el.lon, el.lat];
           }
+        });
+
+        const seenIds = new Set();
+        const parsedBuildings = [];
+        data.elements.forEach((el) => {
+          if (el.type === 'way' && el.nodes) {
+            const buildingId = `building-${el.id}`;
+            if (seenIds.has(buildingId)) return;
+
+            const coordinates = el.nodes
+              .map((nid) => nodes[nid])
+              .filter((coord) => coord !== undefined);
+
+            if (coordinates.length > 2) {
+              // Ensure polygon is closed
+              if (
+                coordinates[0][0] !== coordinates[coordinates.length - 1][0] ||
+                coordinates[0][1] !== coordinates[coordinates.length - 1][1]
+              ) {
+                coordinates.push(coordinates[0]);
+              }
+
+              const height =
+                el.tags &&
+                (el.tags.height ||
+                  (el.tags['building:levels']
+                    ? parseFloat(el.tags['building:levels']) * 3
+                    : 12));
+
+              seenIds.add(buildingId);
+              parsedBuildings.push({
+                id: buildingId,
+                coordinates: coordinates,
+                height: parseFloat(height) || 12
+              });
+            }
+          }
+        });
+
+        bboxCacheRef.current.set(cacheKey, parsedBuildings);
+        if (bboxCacheRef.current.size > BBOX_CACHE_LIMIT) {
+          bboxCacheRef.current.delete(bboxCacheRef.current.keys().next().value);
         }
-      });
 
-      setBuildings(parsedBuildings);
-    } catch (err) {
-      console.error('Error fetching building data from OSM:', err);
-    }
-  };
+        setBuildings(parsedBuildings);
+        reportStatus('ready');
+      } catch (err) {
+        console.error('Error fetching building data from OSM:', err);
+        if (requestId !== requestIdRef.current) return;
 
-  // 3. Listen to map bounds changes to fetch new building footprints
+        if (!isRetry) {
+          reportStatus('retrying');
+          clearTimeout(retryRef.current);
+          retryRef.current = setTimeout(() => fetchBuildings(true), RETRY_DELAY_MS);
+        } else {
+          reportStatus('error');
+        }
+      }
+    },
+    [show, map, reportStatus]
+  );
+
+  // 3. Listen to map changes to fetch new building footprints（debounce 後才發請求）
   useEffect(() => {
     if (!show) {
       setBuildings([]);
+      reportStatus('idle');
       return;
     }
 
-    updateBuildings();
+    fetchBuildings();
 
-    const handleMoveEnd = () => {
-      updateBuildings();
+    const scheduleFetch = () => {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => fetchBuildings(), FETCH_DEBOUNCE_MS);
     };
 
-    map.on('moveend', handleMoveEnd);
+    // zoomend／resize 一併監聽：縮放回到 15 級以上、
+    // 或容器尺寸改變（例如由隱藏變為顯示）之後都要重新取資料
+    map.on('moveend', scheduleFetch);
+    map.on('zoomend', scheduleFetch);
+    map.on('resize', scheduleFetch);
+
     return () => {
-      map.off('moveend', handleMoveEnd);
+      map.off('moveend', scheduleFetch);
+      map.off('zoomend', scheduleFetch);
+      map.off('resize', scheduleFetch);
+      clearTimeout(debounceRef.current);
+      clearTimeout(retryRef.current);
     };
-  }, [show, map]);
+  }, [show, map, fetchBuildings, reportStatus]);
 
   // 4. Calculate Sun position and project shadow polygons using SunCalc
   const shadows = useMemo(() => {
@@ -238,11 +296,13 @@ export default function ShadeMapLayer({ show, date, opacity = 0.6, showTrees = f
     if (altitude <= 0.05) return [];
 
     const allShadows = [];
-    
+
     // Shadow length multiplier: shadow length = height / tan(altitude)
     const L = 1 / Math.tan(altitude);
 
-    const projectFeature = (item) => {
+    // elevated = true 代表物件本體懸在半空（樹冠），
+    // 陰影只有它自己平移過去那一塊，不該連地面一起算。
+    const projectFeature = (item, elevated) => {
       const H = item.height;
       // Cap maximum shadow length to prevent infinitely long shadows at sunrise/sunset
       const shadowLength = Math.min(H * L, H * 15, 120);
@@ -255,32 +315,45 @@ export default function ShadeMapLayer({ show, date, opacity = 0.6, showTrees = f
       const dy = shadowLength * Math.cos(azimuth);
 
       // Convert meter displacements to latitude/longitude offsets
-      const dlng = dx / 100500;
-      const dlat = dy / 111000;
+      const dlng = dx / M_PER_DEG_LNG;
+      const dlat = dy / M_PER_DEG_LAT;
 
       const footprint = item.coordinates;
       const roof = footprint.map((pt) => [pt[0] + dlng, pt[1] + dlat]);
+      // 內部以 [lng, lat] 運算，Leaflet 需要 [lat, lng]
+      const toLatLng = (ring) => ring.map((pt) => [pt[1], pt[0]]);
 
-      // Combine footprint and roof coordinates to find the shadow boundary via convex hull
-      const combinedPoints = [...footprint, ...roof];
-      const hull = getConvexHull(combinedPoints);
+      // 樹冠懸空：只投影樹冠本身
+      if (elevated) {
+        return { id: item.id, rings: [toLatLng(roof)] };
+      }
 
-      // Convert back to Leaflet [lat, lng] format
-      const positions = hull.map((pt) => [pt[1], pt[0]]);
+      // 建築：地面輪廓 ＋ 屋頂輪廓 ＋ 每條邊掃出來的四邊形。
+      // 三者疊在一起就是正確的陰影範圍，L 形、口字形天井等凹角不會被填實
+      // （原本取凸包會把凹處補滿）。這裡不需要真的做多邊形聯集——
+      // 外層 Pane 以 fillOpacity 1.0 繪製，重疊部分在視覺上會自動平坦合併。
+      const rings = [toLatLng(footprint), toLatLng(roof)];
+      for (let i = 0; i < footprint.length - 1; i++) {
+        const a = footprint[i];
+        const b = footprint[i + 1];
+        rings.push([
+          [a[1], a[0]],
+          [b[1], b[0]],
+          [b[1] + dlat, b[0] + dlng],
+          [a[1] + dlat, a[0] + dlng]
+        ]);
+      }
 
-      return {
-        id: item.id,
-        positions: positions
-      };
+      return { id: item.id, rings };
     };
 
     buildings.forEach((b) => {
-      const sh = projectFeature(b);
+      const sh = projectFeature(b, false);
       if (sh) allShadows.push(sh);
     });
 
     trees.forEach((t) => {
-      const sh = projectFeature(t);
+      const sh = projectFeature(t, true);
       if (sh) allShadows.push(sh);
     });
 
@@ -295,11 +368,15 @@ export default function ShadeMapLayer({ show, date, opacity = 0.6, showTrees = f
       {shadows.map((sh) => (
         <Polygon
           key={sh.id}
-          positions={sh.positions}
+          // 每個 ring 包成獨立多邊形（MultiPolygon），而不是同一個多邊形的內環，
+          // 否則 Leaflet 會把它們當成「洞」挖掉
+          positions={sh.rings.map((ring) => [ring])}
           pathOptions={{
             fillColor: '#01112f',
             fillOpacity: 1.0, // Draw with full opacity inside the pane to flatten overlaps
-            stroke: false
+            stroke: false,
+            // 預設的 evenodd 會令重疊處被挖空，改用 nonzero 讓重疊維持實心
+            fillRule: 'nonzero'
           }}
         />
       ))}

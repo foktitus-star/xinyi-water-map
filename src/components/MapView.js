@@ -141,6 +141,8 @@ export default function MapView({ onStartTour }) {
 
   // ShadeMap (Sun Shadow) state
   const [showShadeMap, setShowShadeMap] = useState(false);
+  // 圖層回報的建築圖資載入狀態：idle / loading / retrying / ready / error / zoom
+  const [shadeMapStatus, setShadeMapStatus] = useState('idle');
   const [shadeMapOpacity, setShadeMapOpacity] = useState(0.6);
   const nowMinutes = (() => {
     const n = new Date();
@@ -352,6 +354,7 @@ export default function MapView({ onStartTour }) {
           date={shadeMapDate}
           opacity={shadeMapOpacity}
           showTrees={showTrees}
+          onStatusChange={setShadeMapStatus}
         />
         <TemperatureLayer show={showTemperature} url={temperatureUrl} opacity={temperatureOpacity} />
 
@@ -780,8 +783,34 @@ export default function MapView({ onStartTour }) {
                         </span>
                       </div>
 
+                      {/* 建築圖資載入狀態（由日照圖層回報） */}
+                      {shadeMapStatus === 'loading' && (
+                        <p className="text-[10px] text-amber-700 flex items-center gap-1.5">
+                          <span className="inline-block w-2.5 h-2.5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                          正在載入建築輪廓…
+                        </p>
+                      )}
+                      {shadeMapStatus === 'retrying' && (
+                        <p className="text-[10px] text-amber-700">
+                          ⏳ 圖資伺服器沒有回應，正在重試…
+                        </p>
+                      )}
+                      {shadeMapStatus === 'error' && (
+                        <p className="text-[10px] text-rose-600">
+                          ⚠️ 建築圖資載入失敗，請稍後移動地圖重試。
+                        </p>
+                      )}
+                      {shadeMapStatus === 'zoom' && (
+                        <p className="text-[10px] text-amber-700">
+                          🔍 請再放大地圖，才會顯示建築陰影。
+                        </p>
+                      )}
+
                       <p className="text-[9px] text-amber-600 leading-relaxed">
                         🌳 勾選「行道樹遮蔭」可同時顯示樹冠 3D 陰影
+                      </p>
+                      <p className="text-[9px] text-amber-600/90 leading-relaxed">
+                        ℹ️ 建築高度取自 OpenStreetMap 標註；未標註者以 12 公尺（約 4 層樓）估算，陰影長度僅供參考。
                       </p>
                     </div>
                   )}
